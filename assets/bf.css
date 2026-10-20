@@ -36,13 +36,13 @@
 .bf ul, .bf ol { margin: 0; }
 .bf img { max-width: 100%; }
 
-.bf-wrap { max-width: 1120px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.bf-wrap { max-width: 70rem; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .bf-label { font: 600 .8rem/1.3 var(--bf-label); letter-spacing: .22em; text-transform: uppercase; color: var(--bf-ink-soft); }
 .bf-lead { font-size: 1.12rem; max-width: 62ch; }
 .bf-muted { color: var(--bf-ink-soft); }
 .bf-stack { display: grid; gap: 16px; }
 
-.bf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 22px; border-radius: 999px; font: 600 .85rem/1 var(--bf-label); letter-spacing: .14em; text-transform: uppercase; text-decoration: none; border: 2px solid var(--bf-ink); color: var(--bf-ink) !important; background: transparent; cursor: pointer; }
+.bf-btn { white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 22px; border-radius: 999px; font: 600 .85rem/1 var(--bf-label); letter-spacing: .14em; text-transform: uppercase; text-decoration: none; border: 2px solid var(--bf-ink); color: var(--bf-ink) !important; background: transparent; cursor: pointer; }
 .bf-btn:hover { transform: translateY(-1px); }
 .bf-btn-honey { background: var(--bf-honey); border-color: var(--bf-honey); color: var(--bf-on-honey) !important; }
 .bf-cta-row { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -92,7 +92,7 @@
 .bf-facts .v { font: 500 1.08rem/1.35 var(--bf-body); }
 .bf-hero .bf-facts { margin-top: 36px; }
 
-@media (max-width: 860px) {
+@media (max-width: 60em) {
   .bf-hero { padding-block: 20px 36px; }
   .bf-hero-grid { grid-template-columns: 1fr; gap: 24px; }
   .bf-slider { order: -1; }
@@ -106,7 +106,7 @@
 .bf-about-photos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .bf-about-photos img { width: 100%; height: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 4px; display: block; }
 .bf-about-photos img:first-child { grid-row: span 2; aspect-ratio: auto; }
-@media (max-width: 860px) { .bf-about { grid-template-columns: 1fr; gap: 28px; } }
+@media (max-width: 53.75em) { .bf-about { grid-template-columns: 1fr; gap: 28px; } }
 
 /* Photo grid */
 .bf-gallery { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 180px; gap: 12px; }
@@ -116,10 +116,10 @@
 .bf-gallery figcaption { position: absolute; left: 8px; bottom: 8px; background: rgba(20, 28, 26, .72); color: #fff; font: 600 .7rem/1 var(--bf-label); letter-spacing: .14em; text-transform: uppercase; padding: 6px 8px; border-radius: 3px; }
 .bf-gallery .tall { grid-row: span 2; }
 .bf-gallery .wide { grid-column: span 2; }
-@media (max-width: 860px) { .bf-gallery { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; } }
+@media (max-width: 53.75em) { .bf-gallery { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; } }
 
 /* Cards */
-.bf-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.bf-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14.5rem, 100%), 1fr)); gap: 16px; }
 .bf-card { display: flex; flex-direction: column; gap: 10px; padding: 22px; background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 6px; color: var(--bf-ink); text-decoration: none; min-width: 0; }
 a.bf-card:hover { border-color: var(--bf-teal); }
 .bf-card .bf-label { color: var(--bf-teal); }
@@ -133,19 +133,19 @@ a.bf-card:hover { border-color: var(--bf-teal); }
 .bf-keyrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .bf-key { background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 6px; padding: 20px; display: grid; gap: 6px; align-content: start; }
 .bf-key .bf-price { font-size: 1.8rem; }
-@media (max-width: 720px) { .bf-keyrow { grid-template-columns: 1fr; } }
+@media (max-width: 45em) { .bf-keyrow { grid-template-columns: 1fr; } }
 
 /* Rules list */
 .bf-rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 40px; list-style: none; padding: 0; }
 .bf-rules li { display: grid; gap: 6px; padding-top: 14px; border-top: 2px solid var(--bf-ink); }
 .bf-rules p { color: var(--bf-ink-soft); }
-@media (max-width: 720px) { .bf-rules { grid-template-columns: 1fr; } }
+@media (max-width: 45em) { .bf-rules { grid-template-columns: 1fr; } }
 
 /* Steps */
 .bf-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; counter-reset: bfstep; }
 .bf-step { background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 6px; padding: 24px; display: grid; gap: 12px; align-content: start; min-width: 0; }
 .bf-step::before { counter-increment: bfstep; content: "Step " counter(bfstep); font: 600 .8rem/1 var(--bf-label); letter-spacing: .22em; text-transform: uppercase; color: var(--bf-teal); }
-@media (max-width: 720px) { .bf-steps { grid-template-columns: 1fr; } }
+@media (max-width: 45em) { .bf-steps { grid-template-columns: 1fr; } }
 
 /* Definition list (visit, contact) */
 .bf-two { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
@@ -153,7 +153,7 @@ a.bf-card:hover { border-color: var(--bf-teal); }
 .bf-dl dt { font: 600 .78rem/1.6 var(--bf-label); letter-spacing: .2em; text-transform: uppercase; color: var(--bf-ink-soft); }
 .bf-dl dd { margin: 0; }
 .bf-note { background: var(--bf-mint); border-radius: 6px; padding: 22px; display: grid; gap: 10px; align-content: start; color: var(--bf-ink); }
-@media (max-width: 760px) { .bf-two { grid-template-columns: 1fr; } .bf-dl { grid-template-columns: 1fr; gap: 4px; } .bf-dl dd { margin-bottom: 12px; } }
+@media (max-width: 47.5em) { .bf-two { grid-template-columns: 1fr; } .bf-dl { grid-template-columns: 1fr; gap: 4px; } .bf-dl dd { margin-bottom: 12px; } }
 
 /* Artisan directory */
 .bf-search { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px; }
@@ -176,3 +176,4 @@ a.bf-card:hover { border-color: var(--bf-teal); }
 @media (prefers-reduced-motion: reduce) {
   .bf * { transition: none !important; animation: none !important; }
 }
+.bf-nobr { white-space: nowrap; }
