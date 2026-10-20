@@ -1,0 +1,44 @@
+/* Standalone-site chrome: page background, header, footer, and dark mode.
+   Not used in the WordPress paste-in version (the theme provides those). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bf-paper: #121816; --bf-paper-2: #18211e; --bf-ink: #e6f1ec; --bf-ink-soft: #a9bbb4;
+    --bf-teal: #6cc3b9; --bf-mint: #23413a; --bf-honey: #e2b04f; --bf-on-honey: #121816;
+    --bf-card: #1a2420; --bf-rule: #2c3c36;
+    --bf-wash-a: rgba(64, 150, 140, .22); --bf-wash-b: rgba(110, 160, 90, .18); --bf-wash-c: rgba(70, 140, 180, .18);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bf-paper: #121816; --bf-paper-2: #18211e; --bf-ink: #e6f1ec; --bf-ink-soft: #a9bbb4;
+  --bf-teal: #6cc3b9; --bf-mint: #23413a; --bf-honey: #e2b04f; --bf-on-honey: #121816;
+  --bf-card: #1a2420; --bf-rule: #2c3c36;
+  --bf-wash-a: rgba(64, 150, 140, .22); --bf-wash-b: rgba(110, 160, 90, .18); --bf-wash-c: rgba(70, 140, 180, .18);
+  color-scheme: dark;
+}
+
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bf-paper); color: var(--bf-ink); font: 400 1rem/1.6 var(--bf-body); }
+
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bf-paper); }
+.site-head { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--bf-paper) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--bf-rule); }
+.site-head .bf-wrap { display: flex; align-items: center; gap: 16px; padding-block: 12px; position: relative; }
+.brand { font: 400 1.4rem/1 var(--bf-display); color: var(--bf-ink); text-decoration: none; white-space: nowrap; }
+.nav { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+.nav a { font: 600 .78rem/1 var(--bf-label); letter-spacing: .12em; text-transform: uppercase; color: var(--bf-ink); text-decoration: none; padding-block: 8px; }
+.nav a:hover, .nav a[aria-current="page"] { color: var(--bf-teal); }
+.nav .bf-btn { min-height: 40px; padding: 0 16px; }
+.menu-toggle { display: none; margin-left: auto; background: none; border: 2px solid var(--bf-ink); color: var(--bf-ink); border-radius: 999px; min-height: 40px; padding: 0 16px; font: 600 .8rem/1 var(--bf-label); letter-spacing: .14em; text-transform: uppercase; cursor: pointer; }
+@media (max-width: 980px) {
+  .menu-toggle { display: inline-flex; align-items: center; }
+  .nav { display: none; position: absolute; left: 0; right: 0; top: 100%; flex-direction: column; align-items: stretch; gap: 0; background: var(--bf-paper); border-bottom: 1px solid var(--bf-rule); padding: 8px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); }
+  .nav.open { display: flex; }
+  .nav a { padding-block: 14px; border-bottom: 1px solid var(--bf-rule); }
+  .nav .bf-btn { margin-top: 12px; min-height: 48px; border-bottom: 2px solid var(--bf-honey); }
+}
+
+.site-foot { background: var(--bf-ink); color: var(--bf-paper); padding-block: 40px; }
+.site-foot .bf-wrap { display: flex; flex-wrap: wrap; gap: 16px 40px; justify-content: space-between; }
+.site-foot a { color: var(--bf-paper); }
+.site-foot p { font-size: .9rem; max-width: 56ch; opacity: .85; margin: 0; }
+.site-foot .brand { color: var(--bf-paper); }

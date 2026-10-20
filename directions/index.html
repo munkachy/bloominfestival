@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Directions · Bloomin&#x27; Festival</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Bloomin' Festival: a juried arts and crafts fair at St. Bernard Abbey in Cullman, Alabama. April 17–18, 2027.">
+<link rel="stylesheet" href="/assets/bf.css">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="bf-wrap">
+    <a class="brand" href="/">Bloomin' Festival</a>
+    <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <a href="/artisans/">Artisans</a>
+      <a href="/become-an-exhibitor/">Exhibit</a>
+      <a href="/become-a-sponsor/">Sponsor</a>
+      <a href="/bloomin-sponsors/">Our Sponsors</a>
+      <a href="/directions/" aria-current="page">Directions</a>
+      <a href="/contact-us/">Contact</a>
+      <a class="bf-btn bf-btn-honey" href="/ticket-tshirts/">Tickets &amp; T-shirts</a>
+    </nav>
+  </div>
+</header>
+
+<main class="bf">
+<section class="bf-pagehead bf-wash">
+  <div class="bf-wrap">
+    <p class="bf-label">Plan your visit</p>
+    <h1>Getting here</h1>
+    <p class="bf-lead">Cullman is in North Alabama: 45 miles south of Huntsville, 45 miles north of Birmingham, and about 156 miles from Atlanta.</p>
+  </div>
+</section>
+
+<section class="bf-block">
+  <div class="bf-wrap bf-two">
+    <dl class="bf-dl">
+      <dt>Dates</dt><dd>Saturday &amp; Sunday, April 17–18, 2027</dd>
+      <dt>Hours</dt><dd>9 AM – 4 PM both days</dd>
+      <dt>Admission</dt><dd>$10 · children 12 and under free</dd>
+      <dt>Address</dt><dd>St. Bernard Prep School<br>1600 St. Bernard Drive SE<br>Cullman, AL 35055<br><a href="https://www.google.com/maps/search/?api=1&amp;query=1600+St+Bernard+Dr+SE+Cullman+AL+35055">Open in Google Maps</a></dd>
+      <dt>Phone</dt><dd>256-739-6682 ext. 7133<br>800-722-0999</dd>
+    </dl>
+    <div class="bf-stack">
+      <div class="bf-note">
+        <p class="bf-label">From I-65</p>
+        <p>Take exit 308 and head east on Highway 278 through Cullman. St. Bernard is on the right after you cross a long bridge. Follow the signs to Ave Maria Grotto.</p>
+      </div>
+      <div class="bf-note">
+        <p class="bf-label">Staying overnight</p>
+        <p>Find hotels through the <a href="http://business.cullmanchamber.org/list/ql/lodging-travel-15">Cullman Chamber of Commerce</a>. Festival guests also get reduced admission to the <a href="http://avemariagrotto.com">Ave Maria Grotto</a> all weekend.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="bf-wrap">
+    <a class="brand" href="/">Bloomin' Festival</a>
+    <p>Held each spring by St. Bernard Abbey and St. Bernard Preparatory School, 1600 St. Bernard Drive SE, Cullman, Alabama. Proceeds support <a href="https://stbernardprep.com">St. Bernard Prep</a>. Neighbors of the <a href="http://avemariagrotto.com">Ave Maria Grotto</a>.</p>
+  </div>
+</footer>
+
+<script src="/assets/bf.js"></script>
+<script>
+  (function () {
+    var toggle = document.getElementById('menu-toggle');
+    var nav = document.getElementById('site-nav');
+    toggle.addEventListener('click', function () {
+      var open = nav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+  })();
+</script>
+</body>
+</html>

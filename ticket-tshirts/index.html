@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tickets &amp; T-shirts · Bloomin&#x27; Festival</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Bloomin' Festival: a juried arts and crafts fair at St. Bernard Abbey in Cullman, Alabama. April 17–18, 2027.">
+<link rel="stylesheet" href="/assets/bf.css">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="bf-wrap">
+    <a class="brand" href="/">Bloomin' Festival</a>
+    <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <a href="/artisans/">Artisans</a>
+      <a href="/become-an-exhibitor/">Exhibit</a>
+      <a href="/become-a-sponsor/">Sponsor</a>
+      <a href="/bloomin-sponsors/">Our Sponsors</a>
+      <a href="/directions/">Directions</a>
+      <a href="/contact-us/">Contact</a>
+      <a class="bf-btn bf-btn-honey" href="/ticket-tshirts/" aria-current="page">Tickets &amp; T-shirts</a>
+    </nav>
+  </div>
+</header>
+
+<main class="bf">
+<section class="bf-pagehead bf-wash">
+  <div class="bf-wrap">
+    <p class="bf-label">Sweepstakes &amp; shirts</p>
+    <h1>Tickets &amp; T-shirts</h1>
+    <p class="bf-lead">Order sweepstakes tickets for a chance to win a new car and other prizes, and pick up this year's festival T-shirt. Every purchase supports St. Bernard Prep.</p>
+  </div>
+</section>
+
+<section class="bf-block">
+  <div class="bf-wrap">
+    <div class="bf-head">
+      <h2>Order form</h2>
+      <p class="bf-muted">Orders will be processed securely by Blackbaud once sales open.</p>
+    </div>
+    <div class="bf-embed">
+<div class="bf-soon">
+  <p class="bf-label">Coming soon</p>
+  <h3>Ticket sales open soon</h3>
+  <p>Sweepstakes tickets and festival T-shirts aren't on sale yet. Stay tuned: the order form will appear right here when sales begin. Questions? Email <a href="mailto:festivals@stbernardprep.com">festivals@stbernardprep.com</a> or call 256-739-6682.</p>
+</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="bf-wrap">
+    <a class="brand" href="/">Bloomin' Festival</a>
+    <p>Held each spring by St. Bernard Abbey and St. Bernard Preparatory School, 1600 St. Bernard Drive SE, Cullman, Alabama. Proceeds support <a href="https://stbernardprep.com">St. Bernard Prep</a>. Neighbors of the <a href="http://avemariagrotto.com">Ave Maria Grotto</a>.</p>
+  </div>
+</footer>
+
+<script src="/assets/bf.js"></script>
+<script>
+  (function () {
+    var toggle = document.getElementById('menu-toggle');
+    var nav = document.getElementById('site-nav');
+    toggle.addEventListener('click', function () {
+      var open = nav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+  })();
+</script>
+</body>
+</html>
