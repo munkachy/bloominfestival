@@ -10,7 +10,8 @@
 (function (root) {
   'use strict';
   var MAILBOX = 'https://script.google.com/macros/s/AKfycbze-Z6FuOHn2keCt02VT6bWRgLDi2Xncu5a5T-bNwcKQL--_TrHzjXyFdwhv68pHrBNAg/exec';
-  var SEASON = 2027;            // the festival year new applications belong to
+  // The festival year new applications belong to: the festival is in April, so from May on it's next year's.
+  var SEASON = (function () { var d = new Date(); return d.getMonth() >= 4 ? d.getFullYear() + 1 : d.getFullYear(); })();
   var ITER = 600000;            // password stretching
   var REC_ITER = 100000;        // the recovery code is long and random, so it needs less stretching
 

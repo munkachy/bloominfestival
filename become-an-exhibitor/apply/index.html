@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Exhibitor Application · Bloomin&#x27; Festival</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Apply to exhibit at Bloomin' Festival, a juried arts and crafts fair at St. Bernard Abbey in Cullman, Alabama. April 17–18, 2027.">
+<link rel="stylesheet" href="/assets/bf.css">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/apply.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="bf-wrap">
+    <a class="brand" href="/">Bloomin' Festival</a>
+    <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <a href="/artisans/">Artisans</a>
+      <a href="/become-an-exhibitor/" aria-current="page">Exhibit</a>
+      <a href="/become-a-sponsor/">Sponsor</a>
+      <a href="/bloomin-sponsors/">Our Sponsors</a>
+      <a href="/directions/">Directions</a>
+      <a href="/contact-us/">Contact</a>
+      <a class="bf-btn bf-btn-honey" href="/ticket-tshirts/">Tickets &amp; T-shirts</a>
+    </nav>
+  </div>
+</header>
+
+<main class="bf">
+<section class="bf-pagehead bf-wash">
+  <div class="bf-wrap ap-wrap">
+    <p class="bf-label">2027 exhibitor application</p>
+    <h1>Apply to exhibit</h1>
+    <p class="bf-lead">Bloomin' Festival, April 17–18, 2027, at St. Bernard Abbey in Cullman, Alabama. It takes about 10 minutes. Have two photos ready: one of your work and one of your booth.</p>
+    <p class="ap-facts"><span>Deadline: December 31, 2026</span><span>$275 entry fee, paid only after you're accepted</span></p>
+  </div>
+</section>
+
+<section class="bf-block ap-block">
+  <div class="bf-wrap ap-wrap">
+    <p class="ap-restored" id="ap-restored" role="status" hidden>We kept what you typed last time on this device. Please add your photos again. <button type="button" class="ap-link" id="ap-reset">Start over with a blank form</button></p>
+
+    <form id="ap-form" novalidate>
+      <div class="ap-summary" id="ap-summary" role="alert" tabindex="-1" hidden></div>
+
+      <fieldset class="ap-sec">
+        <legend><span class="ap-num">1</span>About you</legend>
+        <div class="ap-field">
+          <label for="f-name">Your name</label>
+          <input id="f-name" name="name" autocomplete="name" required>
+        </div>
+        <div class="ap-field">
+          <label for="f-business">Business name <span class="ap-opt">optional</span></label>
+          <p class="ap-hint" id="h-business">As it should appear on the festival map. Leave it blank if you sell under your own name.</p>
+          <input id="f-business" name="business" autocomplete="organization" aria-describedby="h-business">
+        </div>
+        <div class="ap-field">
+          <label for="f-email">Email</label>
+          <p class="ap-hint" id="h-email">We'll email you when your application is approved.</p>
+          <input id="f-email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off" required aria-describedby="h-email">
+          <p class="ap-suggest" id="ap-suggest" hidden></p>
+        </div>
+        <div class="ap-field">
+          <label for="f-phone">Phone</label>
+          <input id="f-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required>
+        </div>
+        <div class="ap-field">
+          <label for="f-website">Website or social media <span class="ap-opt">optional</span></label>
+          <input id="f-website" name="website" autocomplete="url" inputmode="url" spellcheck="false" autocapitalize="off" placeholder="yourshop.com or instagram.com/yourshop">
+        </div>
+      </fieldset>
+
+      <fieldset class="ap-sec">
+        <legend><span class="ap-num">2</span>Mailing address</legend>
+        <div class="ap-field">
+          <label for="f-street">Street address</label>
+          <input id="f-street" name="street" autocomplete="street-address" required>
+        </div>
+        <div class="ap-row3">
+          <div class="ap-field ap-city">
+            <label for="f-city">City</label>
+            <input id="f-city" name="city" autocomplete="address-level2" required>
+          </div>
+          <div class="ap-field ap-state">
+            <label for="f-state">State</label>
+            <input id="f-state" name="state" autocomplete="address-level1" maxlength="20" required>
+          </div>
+          <div class="ap-field ap-zip">
+            <label for="f-zip">ZIP</label>
+            <input id="f-zip" name="zip" autocomplete="postal-code" inputmode="numeric" maxlength="10" required>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="ap-sec">
+        <legend><span class="ap-num">3</span>Your work</legend>
+        <div class="ap-field" role="group" aria-labelledby="l-category">
+          <p class="ap-label" id="l-category">What do you make?</p>
+          <div class="ap-choices ap-cats" id="f-category">
+            <label><input type="radio" name="category" value="Jewelry &amp; accessories"><span>Jewelry &amp; accessories</span></label>
+            <label><input type="radio" name="category" value="Pottery &amp; ceramics"><span>Pottery &amp; ceramics</span></label>
+            <label><input type="radio" name="category" value="Woodworking"><span>Woodworking</span></label>
+            <label><input type="radio" name="category" value="Painting, prints &amp; photography"><span>Painting, prints &amp; photography</span></label>
+            <label><input type="radio" name="category" value="Fiber arts"><span>Fiber arts: crochet, knitting, embroidery, quilting</span></label>
+            <label><input type="radio" name="category" value="Clothing &amp; hats"><span>Clothing &amp; hats</span></label>
+            <label><input type="radio" name="category" value="Glass"><span>Glass</span></label>
+            <label><input type="radio" name="category" value="Metalwork"><span>Metalwork</span></label>
+            <label><input type="radio" name="category" value="Candles, soap &amp; bath"><span>Candles, soap &amp; bath</span></label>
+            <label><input type="radio" name="category" value="Home &amp; garden decor"><span>Home &amp; garden decor</span></label>
+            <label><input type="radio" name="category" value="Plants &amp; flowers"><span>Plants &amp; flowers</span></label>
+            <label><input type="radio" name="category" value="Mixed media"><span>Mixed media</span></label>
+            <label><input type="radio" name="category" value="Food, treats &amp; honey"><span>Food, treats &amp; honey</span></label>
+            <label><input type="radio" name="category" value="Other"><span>Something else</span></label>
+          </div>
+        </div>
+        <div class="ap-field" id="w-other" hidden>
+          <label for="f-other">What do you make?</label>
+          <input id="f-other" name="categoryOther" maxlength="80">
+        </div>
+        <div class="ap-field">
+          <label for="f-about">Tell us about your work</label>
+          <p class="ap-hint" id="h-about">How did you get started, and what makes your work unique?</p>
+          <textarea id="f-about" name="about" rows="5" maxlength="4000" required aria-describedby="h-about"></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset class="ap-sec">
+        <legend><span class="ap-num">4</span>Photos</legend>
+        <p class="ap-hint ap-hint-top">One photo of your work and one of your booth, as the festival rules ask. A third is welcome. Photos from your phone are fine.</p>
+        <div class="ap-photos">
+          <div class="ap-photo" data-slot="work">
+            <input type="file" id="ph-work" class="ap-file" accept="image/*" aria-describedby="e-ph-work">
+            <label for="ph-work" class="ap-drop"><span class="ap-ph-img"></span><span class="ap-ph-text"><b>Your work</b><small>Tap to add a photo</small></span></label>
+            <button type="button" class="ap-ph-remove" hidden>Remove</button>
+            <p class="ap-err" id="e-ph-work" hidden></p>
+          </div>
+          <div class="ap-photo" data-slot="booth">
+            <input type="file" id="ph-booth" class="ap-file" accept="image/*" aria-describedby="e-ph-booth">
+            <label for="ph-booth" class="ap-drop"><span class="ap-ph-img"></span><span class="ap-ph-text"><b>Your booth</b><small>Tap to add a photo</small></span></label>
+            <button type="button" class="ap-ph-remove" hidden>Remove</button>
+            <p class="ap-err" id="e-ph-booth" hidden></p>
+          </div>
+          <div class="ap-photo" data-slot="extra">
+            <input type="file" id="ph-extra" class="ap-file" accept="image/*" aria-describedby="e-ph-extra">
+            <label for="ph-extra" class="ap-drop"><span class="ap-ph-img"></span><span class="ap-ph-text"><b>Another photo</b><small>Optional</small></span></label>
+            <button type="button" class="ap-ph-remove" hidden>Remove</button>
+            <p class="ap-err" id="e-ph-extra" hidden></p>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="ap-sec">
+        <legend><span class="ap-num">5</span>Your booth</legend>
+        <div class="ap-field" role="group" aria-labelledby="l-booths">
+          <p class="ap-label" id="l-booths">How many booth spaces?</p>
+          <p class="ap-hint">Each space is about 12′ × 12′. Choose two if your display won't fit in one.</p>
+          <div class="ap-choices ap-two" id="f-booths">
+            <label><input type="radio" name="booths" value="1"><span>One space</span></label>
+            <label><input type="radio" name="booths" value="2"><span>Two spaces, side by side</span></label>
+          </div>
+        </div>
+        <div class="ap-field" role="group" aria-labelledby="l-electricity">
+          <p class="ap-label" id="l-electricity">Do you need electricity?</p>
+          <p class="ap-hint">Electricity is limited. It adds $25.</p>
+          <div class="ap-choices ap-two" id="f-electricity">
+            <label><input type="radio" name="electricity" value="no"><span>No</span></label>
+            <label><input type="radio" name="electricity" value="yes"><span>Yes (+$25)</span></label>
+          </div>
+        </div>
+        <div class="ap-field" role="group" aria-labelledby="l-returning">
+          <p class="ap-label" id="l-returning">Have you exhibited at Bloomin' Festival before?</p>
+          <div class="ap-choices ap-two" id="f-returning">
+            <label><input type="radio" name="returning" value="yes"><span>Yes</span></label>
+            <label><input type="radio" name="returning" value="no"><span>No, this is my first time</span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="ap-sec">
+        <legend><span class="ap-num">6</span>Anything else?</legend>
+        <div class="ap-field">
+          <label for="f-notes">Anything else we should know? <span class="ap-opt">optional</span></label>
+          <textarea id="f-notes" name="notes" rows="3" maxlength="2000"></textarea>
+        </div>
+        <div class="ap-hp" aria-hidden="true">
+          <label for="f-company">Company</label>
+          <input id="f-company" name="company" tabindex="-1" autocomplete="off">
+        </div>
+      </fieldset>
+
+      <div class="ap-sec ap-send">
+        <label class="ap-agree" for="f-agree"><input type="checkbox" id="f-agree" name="agree"><span>I have read the <a href="/become-an-exhibitor/#bf-rules" target="_blank" rel="noopener">festival rules</a> and agree to follow them. I understand that all fees are non-refundable.</span></label>
+        <p class="ap-err" id="e-agree" hidden></p>
+        <p class="ap-hint">Applications sent after December 31, 2026 have a $25 late fee. You'll pay only after you're accepted.</p>
+        <button type="submit" class="bf-btn bf-btn-honey ap-submit" id="ap-submit">Send my application</button>
+        <p class="ap-status" id="ap-status" role="status" aria-live="polite"></p>
+        <p class="ap-privacy">Your answers and photos are locked in your browser before they're sent, so only the festival team can read them.</p>
+      </div>
+    </form>
+
+    <div class="ap-done" id="ap-done" tabindex="-1" hidden></div>
+    <noscript><p class="bf-note">This application needs JavaScript. You can also <a href="/files/Bloomin_Festival_Vendor_Application_2027.pdf">print the PDF application</a> and mail it in, or call the festival office at 256-739-6682.</p></noscript>
+  </div>
+</section>
+</main>
+
+<footer class="site-foot">
+  <div class="bf-wrap">
+    <a class="brand" href="/">Bloomin' Festival</a>
+    <p>Held each spring by St. Bernard Abbey and St. Bernard Preparatory School, 1600 St. Bernard Drive SE, Cullman, Alabama. Proceeds support <a href="https://stbernardprep.com">St. Bernard Prep</a>. Neighbors of the <a href="http://avemariagrotto.com">Ave Maria Grotto</a>.</p>
+  </div>
+</footer>
+
+<script src="/assets/vault.js"></script>
+<script src="/assets/apply.js"></script>
+<script>
+  (function () {
+    var toggle = document.getElementById('menu-toggle');
+    var nav = document.getElementById('site-nav');
+    toggle.addEventListener('click', function () {
+      var open = nav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+  })();
+</script>
+</body>
+</html>
