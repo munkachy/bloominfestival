@@ -43,6 +43,8 @@ function handle_(q, e) {
       case 'publicmap': return out_({ ok: true, map: readJson_('public-map.json', null) });
       case 'submit': return out_(submit_(q));
       case 'init': return out_(init_(q));
+      case 'recoveryKeyring': return out_(recoveryKeyring_());
+      case 'recover': return out_(recover_(q));
       case 'login': return out_(teamOnly_(q, function () { return { ok: true, keyring: readJson_('keyring.json', null) }; }));
       case 'dump': return out_(teamOnly_(q, function () { return dump_(); }));
       case 'photo': return out_(teamOnly_(q, function () { return photo_(q); }));
@@ -115,9 +117,46 @@ function init_(q) {
   lock.waitLock(30000);
   try {
     if (readJson_('keyring.json', null)) return { error: 'already-set-up' };
-    if (!q.keyring || !q.keyring.pub || !q.keyring.access || !/^[0-9a-f]{64}$/.test(String(q.tokenHash || ''))) return { error: 'bad-keyring' };
+    if (!q.keyring || !q.keyring.pub || !q.keyring.access || !/^[0-9a-f]{64}$/.test(String(q.tokenHash || '')) ||
+        !/^[0-9a-f]{64}$/.test(String(q.recHash || ''))) return { error: 'bad-keyring' };
     writeJson_('keyring.json', q.keyring);
-    PropertiesService.getScriptProperties().setProperty('TOKEN_HASH', q.tokenHash);
+    var props = PropertiesService.getScriptProperties();
+    props.setProperty('TOKEN_HASH', q.tokenHash);
+    props.setProperty('REC_HASH', q.recHash);
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* ---------- forgotten password: the printed recovery code ---------- */
+
+// The keys locked with the recovery code. Safe to hand out: without the long random code they cannot be opened.
+function recoveryKeyring_() {
+  var k = readJson_('keyring.json', null);
+  if (!k) return { error: 'not-ready' };
+  return { ok: true, recovery: { pub: k.pub, wrap: k.wrap.rec } };
+}
+
+// Set a new team password using the recovery code's proof (the same keys, re-locked by the browser).
+function recover_(q) {
+  var cache = CacheService.getScriptCache();
+  var fails = Number(cache.get('recfails') || 0);
+  if (fails >= FAILS_ALLOWED) return { error: 'paused', detail: 'Too many wrong recovery codes. Try again in 15 minutes.' };
+  var props = PropertiesService.getScriptProperties();
+  var want = props.getProperty('REC_HASH');
+  if (!want || sha256Hex_(String(q.recToken || '')) !== want) {
+    cache.put('recfails', String(fails + 1), 900);
+    return { error: 'wrong-recovery-code' };
+  }
+  if (!q.keyring || !q.keyring.pub || !/^[0-9a-f]{64}$/.test(String(q.tokenHash || ''))) return { error: 'bad-keyring' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var old = readJson_('keyring.json', null);
+    if (!old || JSON.stringify(old.pub) !== JSON.stringify(q.keyring.pub) || JSON.stringify(old.wrap.rec) !== JSON.stringify(q.keyring.wrap.rec)) return { error: 'different-keys' };
+    writeJson_('keyring.json', q.keyring);
+    props.setProperty('TOKEN_HASH', q.tokenHash);
     return { ok: true };
   } finally {
     lock.releaseLock();
@@ -279,7 +318,8 @@ function rekey_(q) {
   lock.waitLock(30000);
   try {
     var old = readJson_('keyring.json', null);
-    if (old && old.pub && JSON.stringify(old.pub) !== JSON.stringify(q.keyring.pub)) return { error: 'different-keys' };
+    if (old && old.pub && (JSON.stringify(old.pub) !== JSON.stringify(q.keyring.pub) ||
+        JSON.stringify(old.wrap && old.wrap.rec) !== JSON.stringify(q.keyring.wrap && q.keyring.wrap.rec))) return { error: 'different-keys' };
     writeJson_('keyring.json', q.keyring);
     PropertiesService.getScriptProperties().setProperty('TOKEN_HASH', q.tokenHash);
     return { ok: true };
