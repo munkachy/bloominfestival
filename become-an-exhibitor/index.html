@@ -33,7 +33,7 @@
     <h1>Bring your craft. Bloom with us.</h1>
     <p class="bf-lead">Join a two-day juried arts and craft festival at St. Bernard Abbey and Preparatory School in Cullman, Alabama. Apply online, or print an application and mail it in.</p>
     <div class="bf-cta-row">
-      <a class="bf-btn bf-btn-honey" href="#bf-apply">Apply &amp; pay</a>
+      <a class="bf-btn bf-btn-honey" href="#bf-apply">How to apply</a>
       <a class="bf-btn" href="/files/Bloomin_Festival_Vendor_Application_2027.pdf">Printable application (PDF)</a>
     </div>
   </div>
@@ -81,14 +81,39 @@
         <div><a class="bf-btn bf-btn-honey" href="https://forms.gle/jNhXxSRzu4nU4Jgg8">Open the application</a></div>
       </div>
       <div class="bf-step">
-        <h3>Register and pay</h3>
-        <p>After you apply, register and pay your $275 booth fee (plus $25 if you need electricity) with the form below. Questions? Call the festival office at 256-739-6682.</p>
+        <h3>Pay once you're approved</h3>
+        <p>The festival team reviews every application and emails you when yours is approved. Then come back here to register and pay your $275 booth fee (plus $25 if you need electricity). Questions? Call the festival office at 256-739-6682.</p>
       </div>
     </div>
-    <div class="bf-embed" style="margin-top:16px">
-<script src="https://sky.blackbaudcdn.net/static/reg-form-loader/5/main.js"></script>
+    <div class="bf-gate" data-bf-gate>
+      <div class="bf-gate-q">
+        <p class="bf-label">Ready to pay?</p>
+        <h3 id="bf-q1">Have you submitted your vendor application?</h3>
+        <div class="bf-gate-btns" role="group" aria-labelledby="bf-q1">
+          <button type="button" class="bf-btn" data-q="applied" data-a="yes" aria-pressed="false">Yes</button>
+          <button type="button" class="bf-btn" data-q="applied" data-a="no" aria-pressed="false">Not yet</button>
+        </div>
+      </div>
+      <div class="bf-gate-q" data-step="approved" hidden>
+        <h3 id="bf-q2">Has the festival team emailed you that your application is approved?</h3>
+        <div class="bf-gate-btns" role="group" aria-labelledby="bf-q2">
+          <button type="button" class="bf-btn" data-q="approved" data-a="yes" aria-pressed="false">Yes</button>
+          <button type="button" class="bf-btn" data-q="approved" data-a="no" aria-pressed="false">Not yet</button>
+        </div>
+      </div>
+      <div class="bf-note" data-msg="apply-first" role="status" hidden>
+        <p><strong>Please apply first.</strong> The booth fee is paid only after the festival team approves your application.</p>
+        <div><a class="bf-btn bf-btn-honey" href="https://forms.gle/jNhXxSRzu4nU4Jgg8">Open the application</a></div>
+      </div>
+      <div class="bf-note" data-msg="wait" role="status" hidden>
+        <p><strong>Thank you for applying!</strong> The festival team reviews applications and will email you once yours is approved, with instructions for paying. Please wait for that email before you pay. Questions? Call the festival office at 256-739-6682.</p>
+      </div>
+      <p class="bf-gate-ok" data-msg="pay" role="status" hidden>Wonderful. Please register and pay below.</p>
+    </div>
+    <div class="bf-embed" data-bf-pay hidden>
 <div data-blackbaud-registration-form="" data-blackbaud-registration-form-envid="p-S-21My8_LkW1jyvEB0_qlw" data-blackbaud-registration-form-id="a7c23491-ea1a-4870-8185-280f94828a4f" data-blackbaud-registration-form-zone="usa" data-blackbaud-registration-form-header-height="0"></div>
     </div>
+    <noscript><p class="bf-muted" style="margin-top:16px">To pay your booth fee, please call the festival office at 256-739-6682.</p></noscript>
   </div>
 </section>
 

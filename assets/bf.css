@@ -167,6 +167,19 @@ a.bf-card:hover { border-color: var(--bf-teal); }
 .bf-artisans .t { font-size: .88rem; color: var(--bf-ink-soft); }
 .bf-empty { padding: 24px 0; color: var(--bf-ink-soft); }
 
+/* Exhibitor payment questions (the payment form appears after two "Yes" answers) */
+.bf-gate { margin-top: 16px; background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 6px; padding: 24px; display: grid; gap: 22px; }
+.bf-gate-q { display: grid; gap: 12px; }
+.bf-gate-q + .bf-gate-q { padding-top: 20px; border-top: 1px solid var(--bf-rule); }
+.bf-gate h3 { font-size: 1.35rem; }
+.bf-gate-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.bf-gate-btns .bf-btn { min-width: 120px; }
+.bf-gate-btns .bf-btn[aria-pressed="true"] { background: var(--bf-teal); border-color: var(--bf-teal); color: var(--bf-paper) !important; }
+.bf-gate .bf-note p { margin: 0; }
+.bf-gate-ok { margin: 0; font-weight: 600; color: var(--bf-teal); }
+.bf-gate + .bf-embed { margin-top: 16px; }
+.bf-gate [hidden], .bf-embed[hidden] { display: none !important; }
+
 /* Embedded third-party form area */
 .bf-embed { background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 6px; padding: 24px; min-height: 120px; }
 .bf-soon { text-align: center; padding: 32px 8px; }
