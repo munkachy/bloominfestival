@@ -51,6 +51,7 @@ function handle_(q, e) {
       case 'publish': return out_(teamOnly_(q, function () { return publish_(q); }));
       case 'removeApp': return out_(teamOnly_(q, function () { return removeApp_(q); }));
       case 'importMany': return out_(teamOnly_(q, function () { return importMany_(q); }));
+      case 'settings': return out_(teamOnly_(q, function () { return settings_(q); }));
       case 'rekey': return out_(teamOnly_(q, function () { return rekey_(q); }));
       default: return out_({ ok: true, service: "Bloomin' Festival mailbox", ready: !!readJson_('keyring.json', null) });
     }
@@ -98,6 +99,7 @@ function submit_(q) {
     var entry = { no: no, season: season, at: new Date().toISOString(), app: { epk: q.app.epk, iv: q.app.iv, ct: q.app.ct }, photos: ids };
     index.push(entry);
     writeJson_('applications.json', index);
+    notify_(no);
     return { ok: true, no: no };
   } finally {
     lock.releaseLock();
@@ -226,6 +228,31 @@ function importMany_(q) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// Team settings kept by the script: who gets an email when a new application arrives.
+function settings_(q) {
+  var props = PropertiesService.getScriptProperties();
+  if (Array.isArray(q.notify)) {
+    var list = q.notify.map(function (x) { return String(x).trim(); }).filter(function (x) { return x; });
+    if (list.length > 5 || list.some(function (x) { return !/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(x); })) return { error: 'bad-email' };
+    props.setProperty('NOTIFY', JSON.stringify(list));
+  }
+  return { ok: true, notify: JSON.parse(props.getProperty('NOTIFY') || '[]') };
+}
+
+// A short note to the team. It carries only the application number; the details stay locked.
+function notify_(no) {
+  var list = JSON.parse(PropertiesService.getScriptProperties().getProperty('NOTIFY') || '[]');
+  if (!list.length) return;
+  try {
+    MailApp.sendEmail({
+      to: list.join(','),
+      subject: "New Bloomin' Festival application " + no,
+      body: "A new vendor application (" + no + ") has arrived.\n\nOpen the Vendor Desk to read it: https://bloominfestival.com/team/\n\n" +
+        "For the vendor's privacy, the application's details are locked and appear only in the Desk."
+    });
+  } catch (err) {}
 }
 
 // Remove an application (for example, junk sent to the public form).
