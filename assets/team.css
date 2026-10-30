@@ -39,6 +39,9 @@
 
 /* ---------- shared ---------- */
 .tm { padding-block: 32px 72px; min-height: 70vh; }
+.tm.tm-mapmode { padding: 0; }
+.tm-bdg-booth { border-color: #a25903; color: #a25903; }
+.tm-boothline { font-size: 1.1rem; }
 .tm-center { display: grid; place-items: center; min-height: 40vh; }
 .tm-wait { color: var(--bf-ink-soft); }
 .tm-card { background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 20px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }

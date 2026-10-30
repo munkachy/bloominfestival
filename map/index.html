@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Festival Map · Bloomin&#x27; Festival</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Map of Bloomin' Festival at St. Bernard Abbey, Cullman, Alabama: booths, food, restrooms and more. April 17–18, 2027.">
+<link rel="stylesheet" href="/assets/bf.css">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/map.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="bf-wrap">
+    <a class="brand" href="/">Bloomin' Festival</a>
+    <button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <a href="/artisans/">Artisans</a>
+      <a href="/become-an-exhibitor/">Exhibit</a>
+      <a href="/become-a-sponsor/">Sponsor</a>
+      <a href="/bloomin-sponsors/">Our Sponsors</a>
+      <a href="/directions/">Directions</a>
+      <a href="/contact-us/">Contact</a>
+      <a class="bf-btn bf-btn-honey" href="/ticket-tshirts/">Tickets &amp; T-shirts</a>
+    </nav>
+  </div>
+</header>
+
+<main class="bf">
+<section class="bf-block" style="padding-top:40px">
+  <div class="bf-wrap">
+    <p class="bf-label">April 17–18, 2027 · St. Bernard Abbey</p>
+    <h1>Festival map</h1>
+    <p class="pmap-yours" id="pm-yours" role="status" hidden></p>
+    <div class="pmap-tools" id="pm-tools" hidden>
+      <input type="search" id="pm-q" placeholder="Find a booth, vendor or restrooms…" aria-label="Find on the map">
+      <select id="pm-cat" aria-label="Show a kind of vendor" hidden><option value="">All vendors</option></select>
+      <button type="button" class="bf-btn" id="pm-print">Print the map</button>
+    </div>
+    <p class="pmap-empty bf-lead" id="pm-empty" hidden>The festival map will be posted here before the festival. Questions? Call the festival office at 256-739-6682.</p>
+    <div class="pmap-frame" id="pm-frame" hidden>
+      <div class="bfm-host" id="pm-host"></div>
+      <div class="bfm-zoom"><button type="button" id="pm-zin" aria-label="Zoom in">+</button><button type="button" id="pm-zout" aria-label="Zoom out">−</button><button type="button" class="bfm-zfit" id="pm-zfit" aria-label="Show the whole festival">FIT</button></div>
+      <div class="pmap-card" id="pm-card" role="dialog" aria-live="polite" hidden></div>
+    </div>
+    <div class="pmap-legend bfm-legend" id="pm-legend"></div>
+  </div>
+</section>
+</main>
+
+<footer class="site-foot">
+  <div class="bf-wrap">
+    <a class="brand" href="/">Bloomin' Festival</a>
+    <p>Held each spring by St. Bernard Abbey and St. Bernard Preparatory School, 1600 St. Bernard Drive SE, Cullman, Alabama. Proceeds support <a href="https://stbernardprep.com">St. Bernard Prep</a>. Neighbors of the <a href="http://avemariagrotto.com">Ave Maria Grotto</a>.</p>
+  </div>
+</footer>
+
+<script src="/assets/vault.js"></script>
+<script src="/assets/map.js"></script>
+<script src="/assets/map-public.js"></script>
+<script>
+  (function () {
+    var toggle = document.getElementById('menu-toggle');
+    var nav = document.getElementById('site-nav');
+    toggle.addEventListener('click', function () {
+      var open = nav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+  })();
+</script>
+</body>
+</html>

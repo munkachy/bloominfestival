@@ -219,10 +219,22 @@
 
   function go(tab) {
     S.tab = tab;
+    root.classList.toggle('tm-mapmode', tab === 'map');
     $all('[data-tab]', tabsEl).forEach(function (b) { b.setAttribute('aria-current', String(b.getAttribute('data-tab') === tab)); });
     if (tab === 'vendors') loadVendors();
-    else if (tab === 'map') screen('<div class="tm-card"><p class="bf-label">Coming next</p><h1>Festival map</h1><p>The booth map (built on Br. Nicholas\'s campus map) is being made now. It will appear here.</p></div>');
+    else if (tab === 'map') openMap();
     else settingsView();
+  }
+  async function openMap() {
+    if (!S.loadedAt) {
+      screen('<div class="tm-center"><p class="tm-wait">Opening the map…</p></div>');
+      try { await fetchApps(); } catch (x) { screen('<div class="tm-card tm-narrow"><h1>Couldn\'t open the map</h1><p>' + esc(friendly(x)) + '</p></div>'); return; }
+    }
+    if (S.tab !== 'map') return;
+    BFTeamMap.open(root, {
+      session: S.session, apps: function () { return S.apps; }, statusOf: statusOf, titleOf: titleOf, myName: myName, friendly: friendly,
+      openVendor: function (no) { var v = find(no); if (v) S.season = v.season; S.openNo = no; S.filter = 'all'; go('vendors'); }
+    });
   }
 
   /* ---------- loading the vendors ---------- */
@@ -257,6 +269,7 @@
     S.apps = apps;
     S.loadedAt = new Date();
     markReturning();
+    if (window.BFTeamMap) { try { await BFTeamMap.load(d.map, S.session); } catch (x) {} }
   }
   async function loadVendors() {
     screen('<div class="tm-center"><p class="tm-wait" id="lw">Opening the applications…</p></div>');
@@ -340,6 +353,8 @@
       if (d.electricity === 'yes') badges.push('<span class="tm-bdg" title="Needs electricity">⚡ Power</span>');
       if (v.returning) badges.push('<span class="tm-bdg" title="Has applied in an earlier year">↺ Returning</span>');
       if (v.legacy) badges.push('<span class="tm-bdg tm-bdg-old" title="Brought over from the Google sheet">Google sheet</span>');
+      var bo = window.BFTeamMap && BFTeamMap.boothFor(v.no);
+      if (bo) badges.push('<span class="tm-bdg tm-bdg-booth" title="Their booth on the festival map">Booth ' + esc(bo.n) + (bo.double && bo.n2 && !bo.one ? '–' + esc(bo.n2) : '') + '</span>');
       return '<li><button type="button" class="tm-item st-' + st + '" data-no="' + esc(v.no) + '">' +
         '<span class="tm-item-main"><b>' + esc(titleOf(v)) + '</b>' +
         '<span>' + esc([d.business ? d.name : '', d.category].filter(Boolean).join(' · ')) + '</span>' +
@@ -388,6 +403,7 @@
       row('Exhibited before', d.returning === 'yes' ? 'Yes' + (d.returningYears ? ' (' + d.returningYears + ')' : '') : d.returning === 'no' ? 'No' : '') +
       row('Applied', whenTime(v.at)) +
       '</dl>' +
+      boothHtml(v) +
       (d.about ? '<h3>About their work</h3><p class="tm-about">' + esc(d.about) + '</p>' : '') +
       (d.notes ? '<h3>Their note to us</h3><p class="tm-about">' + esc(d.notes) + '</p>' : '') +
       '<h3>Photos</h3><div class="tm-photos" id="photos">' + photosHtml(v) + '</div>' +
@@ -403,6 +419,7 @@
       '<button type="button" class="bf-btn" id="remove">Remove ' + esc(v.no) + '</button></details>' +
       '</div>';
     function row(label, val) { return val ? '<dt>' + label + '</dt><dd>' + esc(val) + '</dd>' : ''; }
+    var sm = $('#showmap'); if (sm) sm.onclick = function () { go('map'); setTimeout(function () { BFTeamMap.showBooth(v.no); }, 60); };
     $('#ptitle').focus();
     $('#close').onclick = closePanel;
     $all('[data-set]', panel).forEach(function (b) { b.onclick = function () { setStatus(v, b.getAttribute('data-set')); }; });
@@ -410,6 +427,17 @@
     $('#remove').onclick = function () { removeApp(v, this); };
     loadPhotos(v);
   }
+  function boothHtml(v) {
+    var b = window.BFTeamMap && BFTeamMap.boothFor(v.no), d = v.d;
+    if (!b) return LIVE_ST.indexOf(statusOf(v)) !== -1 ? '<h3>Booth</h3><p class="tm-muted">Not on the festival map yet. Place them from the Map tab.</p>' : '';
+    var nums = b.n + (b.double && b.n2 && !b.one ? ' and ' + b.n2 : ''), link = 'https://bloominfestival.com/map/?booth=' + encodeURIComponent(b.n);
+    var body = 'Dear ' + (d.name || 'vendor') + ',\n\nYour booth at the ' + v.season + " Bloomin' Festival is number " + nums + '. You can see where it is on the festival map:\n' + link +
+      '\n\nSetup can begin the Friday before the festival, and booths must be ready by 8 a.m. on Saturday and Sunday.\n\nSee you at the festival!\n\n' + myName();
+    return '<h3>Booth</h3><p class="tm-boothline">Booth <b>' + esc(nums) + '</b>' + (b.zone ? ' · ' + esc(b.zone) : '') + '</p>' +
+      '<div class="tm-contact"><button type="button" class="bf-btn" id="showmap">Show on the map</button>' +
+      (d.email ? '<a class="bf-btn" href="mailto:' + esc(d.email) + '?subject=' + encodeURIComponent("Your Bloomin' Festival booth: " + nums) + '&body=' + encodeURIComponent(body) + '">Email booth assignment</a>' : '') + '</div>';
+  }
+  var LIVE_ST = ['accepted', 'paid'];
   function closePanel() { S.openNo = null; var p = $('#panel'); if (p) { p.hidden = true; p.innerHTML = ''; } }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.openNo) closePanel(); });
 
