@@ -42,3 +42,5 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .site-foot a { color: var(--bf-paper); }
 .site-foot p { font-size: .9rem; max-width: 56ch; opacity: .85; margin: 0; }
 .site-foot .brand { color: var(--bf-paper); }
+.site-foot-nav { display: flex; gap: 20px; flex-basis: 100%; font-size: .9rem; }
+.site-foot-nav a { opacity: .85; }
