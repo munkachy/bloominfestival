@@ -53,6 +53,7 @@ function handle_(q, e) {
       case 'putMap': return out_(teamOnly_(q, function () { return putMap_(q); }));
       case 'publish': return out_(teamOnly_(q, function () { return publish_(q); }));
       case 'removeApp': return out_(teamOnly_(q, function () { return removeApp_(q); }));
+      case 'importMany': return out_(teamOnly_(q, function () { return importMany_(q); }));
       case 'rekey': return out_(teamOnly_(q, function () { return rekey_(q); }));
       default: return out_({ ok: true, service: "Bloomin' Festival mailbox", ready: !!readJson_('keyring.json', null) });
     }
@@ -98,7 +99,6 @@ function submit_(q) {
     });
     var index = readJson_('applications.json', []);
     var entry = { no: no, season: season, at: new Date().toISOString(), app: { epk: q.app.epk, iv: q.app.iv, ct: q.app.ct }, photos: ids };
-    if (q.legacy) entry.legacy = true;
     index.push(entry);
     writeJson_('applications.json', index);
     if (NOTIFY_EMAIL && !q.legacy) {
@@ -201,6 +201,37 @@ function publish_(q) {
   if (text.length > 3000000) return { error: 'too-large' };
   writeJson_('public-map.json', q.map || null);
   return { ok: true };
+}
+
+// Bring in older applications (for example from the old Google Form), already locked by the team's browser.
+// items: [{ season, at, app: {epk, iv, ct} }]  (no photos: the old form's photos stay where they are)
+function importMany_(q) {
+  var items = Array.isArray(q.items) ? q.items : [];
+  if (!items.length || items.length > 100) return { error: 'bad-items' };
+  for (var i = 0; i < items.length; i++) {
+    var season = Number(items[i].season);
+    if (!(season >= 2024 && season <= 2100) || !sealedOk_(items[i].app, 200000)) return { error: 'bad-item', index: i };
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var index = readJson_('applications.json', []);
+    var nos = items.map(function (it) {
+      var season = Number(it.season);
+      var seq = Number(props.getProperty('SEQ_' + season) || 0) + 1;
+      props.setProperty('SEQ_' + season, String(seq));
+      var no = 'BF' + String(season).slice(2) + '-' + ('000' + seq).slice(-4);
+      var at = new Date(it.at);
+      index.push({ no: no, season: season, at: isNaN(at) ? new Date().toISOString() : at.toISOString(),
+        app: { epk: it.app.epk, iv: it.app.iv, ct: it.app.ct }, photos: [], legacy: true });
+      return no;
+    });
+    writeJson_('applications.json', index);
+    return { ok: true, nos: nos };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // Remove an application (for example, junk sent to the public form).
