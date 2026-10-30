@@ -14,9 +14,6 @@
  * Please do not edit or move the files in it by hand.
  */
 
-// Optional: an email address that gets a short note when a new application arrives (no personal details).
-const NOTIFY_EMAIL = '';
-
 const FOLDER_NAME = "Bloomin' Festival vault (locked data, do not edit)";
 const MAX_BODY = 20 * 1024 * 1024;        // largest request accepted (bytes)
 const MAX_PHOTO = 6 * 1024 * 1024;        // largest single locked photo (characters)
@@ -101,9 +98,6 @@ function submit_(q) {
     var entry = { no: no, season: season, at: new Date().toISOString(), app: { epk: q.app.epk, iv: q.app.iv, ct: q.app.ct }, photos: ids };
     index.push(entry);
     writeJson_('applications.json', index);
-    if (NOTIFY_EMAIL && !q.legacy) {
-      try { MailApp.sendEmail(NOTIFY_EMAIL, "New Bloomin' Festival application " + no, 'A new vendor application (' + no + ') has arrived. Open the Vendor Desk to read it.'); } catch (err) {}
-    }
     return { ok: true, no: no };
   } finally {
     lock.releaseLock();
