@@ -27,7 +27,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .nav { margin-left: auto; display: flex; gap: 20px; align-items: center; }
 .nav a { white-space: nowrap; font: 600 .78rem/1 var(--bf-label); letter-spacing: .12em; text-transform: uppercase; color: var(--bf-ink); text-decoration: none; padding-block: 8px; }
 .nav a:hover, .nav a[aria-current="page"] { color: var(--bf-teal); }
-.nav .bf-btn { min-height: 40px; padding: 0 16px; }
+.nav .bf-btn { min-height: 40px; padding: 6px 16px; }
 .menu-toggle { display: none; margin-left: auto; background: none; border: 2px solid var(--bf-ink); color: var(--bf-ink); border-radius: 999px; min-height: 40px; padding: 0 16px; font: 600 .8rem/1 var(--bf-label); letter-spacing: .14em; text-transform: uppercase; cursor: pointer; }
 @media (max-width: 75em) {
   .menu-toggle { display: inline-flex; align-items: center; }

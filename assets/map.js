@@ -1,7 +1,8 @@
 /* Bloomin' Festival map: Br. Nicholas's campus drawing with booths and site elements, all measured in feet.
  * Shared by the team's map (team/, via team-map.js) and the public map (map/). Plain SVG, no libraries.
  * A map document: { booths: [{id,n,n2,one,double,x,y,w,h,r,app,color,zone,power}], items: [{id,kind,icon,text,x,y,w,h,r,color}],
- *                   spots: [{id,x,y,r}], settings: {...} }   (x,y = centre in feet; r = degrees)
+ *                   settings: { v: 2, grid: {x,y}, ... } }   (x,y = centre in feet; r = degrees)
+ * Booths stand square on a 12 ft grid; settings.grid is where its lines start (0-12 ft).
  */
 (function (root) {
   'use strict';
@@ -12,6 +13,12 @@
     festival: { href: '/images/map-festival.webp', print: '/images/map-festival-print.webp', x: 364.78, y: 719.40, w: 838.07, h: 558.72 }
   };
   var HOME = { x: 476, y: 878, w: 450, h: 330 };          // the quad, the statue lawn and the library lawn
+  var CAMPUS = { x: 0, y: 0, w: 1900, h: 1728 };
+  var CELL = 12;                                           // the booth grid, in feet
+  // Building names (as on last year's Google Slides map), placed on Br. Nicholas's page 1
+  var BUILDINGS = [['Library', 642, 907], ["Boys' Dorm", 892, 909], ['Founders Hall', 1059, 912], ['Admin Building', 654, 1075],
+    ['Abbey Church', 1147, 1072], ['Monastery', 1201, 1167], ['Cafeteria', 1052, 1262], ['Placidus Hall', 835, 1205], ['High School', 700, 1536],
+    ['Physical Plant', 1561, 1072], ['Lake', 1378, 841], ['Gazebo', 934, 1240], ['Retreat Center', 597, 522], ['Gym', 774, 550], ['Grotto', 349, 934]];
   // Colours from Br. Nicholas's map
   var PAL = { orange: '#fdb666', rust: '#a25903', cream: '#ffeda3', yellow: '#fecf33', gold: '#d8b95c', blue: '#4d81a7', navy: '#004069',
     red: '#7a0000', road: '#545454', dark: '#343434', white: '#ffffff', sage: '#6e8d53', leaf: '#68a92b' };
@@ -60,7 +67,8 @@
     area: { label: 'Area or section', w: 60, h: 40, color: PAL.yellow, ink: PAL.dark, icon: '', text: 'Area' },
     shape: { label: 'Shape', w: 20, h: 20, color: PAL.gold, ink: PAL.dark, icon: '', text: '' },
     marker: { label: 'Icon marker', w: 8, h: 8, color: '', ink: '#fff', icon: 'restroom', text: '' },
-    label: { label: 'Text label', w: 50, h: 7, color: PAL.dark, ink: PAL.dark, icon: '', text: 'Label' }
+    label: { label: 'Text label', w: 50, h: 7, color: PAL.dark, ink: PAL.dark, icon: '', text: 'Label' },
+    building: { label: 'Building name', w: 60, h: 8, color: PAL.dark, ink: PAL.dark, icon: '', text: 'Building' }
   };
 
   /* ---------- helpers ---------- */
@@ -87,6 +95,58 @@
     pad = pad == null ? 20 : pad;
     return isFinite(x0) ? { x: x0 - pad, y: y0 - pad, w: x1 - x0 + 2 * pad, h: y1 - y0 + 2 * pad } : Object.assign({}, HOME);
   }
+  function gridOf(doc) { var g = doc && doc.settings && doc.settings.grid; return { x: g ? +g.x || 0 : 0, y: g ? +g.y || 0 : 0 }; }
+  function gridLine(v, o) { return Math.round((v - o) / CELL) * CELL + o; }       // the nearest grid line
+  function square(r) { var q = ((r || 0) % 90 + 90) % 90; return q < 0.5 || q > 89.5; }   // 0, 90, 180 or 270 degrees
+  function turned(r) { var q = Math.abs(normRot(r || 0)) % 180; return q > 45 && q < 135; }
+  // Where an object goes near (x, y) when snapping: booths and boxes put their edges on grid lines, icon markers sit in the
+  // middle of a cell. Booths are always square to the campus.
+  function snapPos(o, x, y, g, booth) {
+    if (o.kind === 'marker') return { x: Math.floor((x - g.x) / CELL) * CELL + g.x + CELL / 2, y: Math.floor((y - g.y) / CELL) * CELL + g.y + CELL / 2, r: o.r || 0 };
+    if (!booth && !square(o.r)) return { x: gridLine(x, g.x), y: gridLine(y, g.y), r: o.r || 0 };
+    var t = turned(o.r), w = t ? o.h : o.w, h = t ? o.w : o.h;
+    return { x: gridLine(x - w / 2, g.x) + w / 2, y: gridLine(y - h / 2, g.y) + h / 2, r: booth ? (t ? 90 : 0) : o.r || 0 };
+  }
+  // The grid origin that moves these booths least (each axis on its own, 0.01 ft steps)
+  function bestGrid(booths) {
+    function best(edges) {
+      var bo = 0, bd = Infinity;
+      for (var o = 0; o < CELL; o += 0.01) {
+        var d = 0;
+        edges.forEach(function (e) { d += Math.abs(gridLine(e, o) - e); });
+        if (d < bd - 1e-9) { bd = d; bo = o; }
+      }
+      return Math.round(bo * 100) / 100;
+    }
+    var xs = [], ys = [];
+    booths.forEach(function (b) { var t = turned(b.r); xs.push(b.x - (t ? b.h : b.w) / 2); ys.push(b.y - (t ? b.w : b.h) / 2); });
+    return { x: best(xs), y: best(ys) };
+  }
+  // Puts booths on the grid, each in the nearest free place (two booths never share a cell). Returns the booths moved.
+  function boothsToGrid(booths, g) {
+    var used = {}, moved = [];
+    function key(x, y) { return Math.round(x * 2) + ',' + Math.round(y * 2); }
+    function cells(b) { return boothSpaces(b).map(function (p) { return key(p.x, p.y); }); }
+    booths.slice().sort(function (a, b) { return a.y - b.y || a.x - b.x; }).forEach(function (b) {
+      var s = snapPos(b, b.x, b.y, g, true), best = null, bd = Infinity;
+      for (var dx = -2; dx <= 2; dx++) for (var dy = -2; dy <= 2; dy++) {
+        var c = { x: s.x + dx * CELL, y: s.y + dy * CELL, w: b.w, h: b.h, r: s.r, double: b.double };
+        if (cells(c).some(function (k) { return used[k]; })) continue;
+        var d = Math.hypot(c.x - b.x, c.y - b.y);
+        if (d < bd) { bd = d; best = c; }
+      }
+      best = best || s;
+      if (Math.abs(best.x - b.x) > 1e-6 || Math.abs(best.y - b.y) > 1e-6 || (b.r || 0) !== best.r) moved.push(b);
+      b.x = Math.round(best.x * 100) / 100; b.y = Math.round(best.y * 100) / 100; b.r = best.r;
+      cells(b).forEach(function (k) { used[k] = 1; });
+    });
+    return moved;
+  }
+  function buildingLabels(uid) {
+    return BUILDINGS.map(function (b, i) {
+      return { id: uid ? uid(i) : 'n' + (i + 1), kind: 'building', text: b[0], x: b[1], y: b[2], w: Math.max(24, Math.round(b[0].length * 5.2)), h: 9, r: 0 };
+    });
+  }
   function textColor(fill) {
     var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(fill || '');
     if (!m) return PAL.dark;
@@ -98,22 +158,22 @@
   function create(host, opt) {
     opt = opt || {};
     var team = opt.mode === 'team';
-    var doc = opt.doc || { booths: [], items: [], spots: [] };
-    var st = { edit: false, snap: true, showSpots: false, sel: [], vb: Object.assign({}, opt.view || HOME), hi: null, drag: null, pointers: {}, k: 1 };
+    var doc = opt.doc || { booths: [], items: [] };
+    var st = { edit: false, snap: true, sel: [], vb: Object.assign({}, opt.view || HOME), hi: null, drag: null, pointers: {}, k: 1 };
     var svg = el('svg', { class: 'bfm-svg' + (opt.static ? ' bfm-static' : ''), role: 'img', 'aria-label': opt.title || 'Festival map', preserveAspectRatio: 'xMidYMid meet' });
     var gBase = el('g', { class: 'bfm-base' }, svg);
-    var gLow = el('g', {}, svg), gMid = el('g', {}, svg), gSpots = el('g', { class: 'bfm-spots' }, svg), gBooths = el('g', {}, svg),
+    var gGrid = el('g', { class: 'bfm-grid' }, svg), gLow = el('g', {}, svg), gMid = el('g', {}, svg), gBooths = el('g', {}, svg),
       gTop = el('g', {}, svg), gSel = el('g', { class: 'bfm-sel' }, svg);
     host.appendChild(svg);
     var nodes = {};          // id -> svg group
 
     function all() { return doc.booths.concat(doc.items); }
     function byId(id) {
-      var lists = [doc.booths, doc.items, doc.spots || []];
+      var lists = [doc.booths, doc.items];
       for (var i = 0; i < lists.length; i++) for (var j = 0; j < lists[i].length; j++) if (lists[i][j].id === id) return lists[i][j];
       return null;
     }
-    function typeOf(o) { return doc.booths.indexOf(o) !== -1 ? 'booth' : (doc.spots || []).indexOf(o) !== -1 ? 'spot' : 'item'; }
+    function typeOf(o) { return doc.booths.indexOf(o) !== -1 ? 'booth' : 'item'; }
 
     /* ----- drawing ----- */
     function drawBase() {
@@ -127,10 +187,9 @@
       var v = team && opt.vendorOf ? opt.vendorOf(b) : null;
       var empty = team && !b.app;
       var g = el('g', { class: 'bfm-item bfm-booth' + (empty ? ' bfm-open' : '') + (b.zone ? ' bfm-zoned' : ''), 'data-id': b.id, transform: tf(b) }, gBooths);
-      var fill = b.color || PAL.orange;
-      el('rect', { class: 'bfm-body', x: -b.w / 2, y: -b.h / 2, width: b.w, height: b.h, rx: 0.8, fill: empty ? '#fffdf8' : fill, stroke: empty ? PAL.rust : '#7a4300' }, g);
-      if (empty && b.color) el('rect', { x: -b.w / 2, y: -b.h / 2, width: b.w, height: Math.min(2.4, b.h / 4), fill: b.color, 'pointer-events': 'none' }, g);
-      var ink = empty ? PAL.rust : textColor(fill);
+      var fill = b.color || (empty ? '#fffdf8' : PAL.orange);          // an open booth keeps its dashed outline
+      el('rect', { class: 'bfm-body', x: -b.w / 2, y: -b.h / 2, width: b.w, height: b.h, rx: 0.8, fill: fill, stroke: empty ? (b.color ? PAL.dark : PAL.rust) : '#7a4300' }, g);
+      var ink = empty && !b.color ? PAL.rust : textColor(fill);
       var nums = b.double && !b.one && b.n2 ? [[b.n, -b.w / 4], [b.n2, b.w / 4]] : [[b.n, 0]];
       if (nums.length === 2) el('line', { class: 'bfm-div', x1: 0, y1: -b.h / 2, x2: 0, y2: b.h / 2, stroke: '#7a4300' }, g);
       var fs = Math.max(2, Math.min(b.h * 0.42, (b.w / nums.length) * 0.42));
@@ -158,6 +217,11 @@
         var ig = el('g', { transform: 'translate(' + (-12 * s) + ' ' + (-12 * s) + ') scale(' + s + ')', color: ic.ink || '#fff' }, mk);
         ig.innerHTML = ic.svg;
         if (it.text) { var t = el('text', { class: 'bfm-lbl', y: (it.w || 8) / 2 + 1, style: '--f:3.2' }, g); t.textContent = it.text; }
+      } else if (it.kind === 'building') {
+        g = el('g', { class: 'bfm-item bfm-bldg', 'data-id': it.id, transform: tf(it) }, gTop);
+        el('rect', { class: 'bfm-hit', x: -it.w / 2, y: -it.h / 2, width: it.w, height: it.h, fill: 'transparent' }, g);
+        var bt = el('text', { class: 'bfm-bldg-t', style: '--f:' + (it.h * 0.72).toFixed(2) }, g);
+        bt.textContent = it.text || '';
       } else if (it.kind === 'label') {
         g = el('g', { class: 'bfm-item bfm-free', 'data-id': it.id, transform: tf(it) }, gTop);
         el('rect', { class: 'bfm-hit', x: -it.w / 2, y: -it.h / 2, width: it.w, height: it.h, fill: 'transparent' }, g);
@@ -196,29 +260,25 @@
       }
       nodes[it.id] = g;
     }
-    function drawSpots() {
-      gSpots.innerHTML = '';
-      var show = team && (st.showSpots || st.edit || (st.drag && st.drag.kind === 'move' && st.drag.objs.some(function (o) { return typeOf(o) === 'booth'; })));
-      svg.classList.toggle('bfm-spots-on', !!show);
-      if (!show) return;
-      (doc.spots || []).forEach(function (s) {
-        var g = el('g', { class: 'bfm-spot' + (st.edit ? ' bfm-item' : ''), 'data-id': s.id, transform: tf(s) }, gSpots);
-        el('rect', { x: -6, y: -6, width: 12, height: 12, rx: 0.6 }, g);
-        nodes[s.id] = g;
-      });
+    function drawGrid() {          // faint 12 ft grid lines over the whole campus while snapping is on
+      gGrid.innerHTML = '';
+      if (!team || opt.static || !st.snap) return;
+      var g = gridOf(doc), d = '', x, y;
+      for (x = g.x; x <= CAMPUS.w; x += CELL) d += 'M' + x.toFixed(2) + ' 0V' + CAMPUS.h;
+      for (y = g.y; y <= CAMPUS.h; y += CELL) d += 'M0 ' + y.toFixed(2) + 'H' + CAMPUS.w;
+      el('path', { d: d, 'vector-effect': 'non-scaling-stroke' }, gGrid);
     }
     function render() {
       nodes = {};
       [gLow, gMid, gBooths, gTop].forEach(function (g) { g.innerHTML = ''; });
       doc.items.forEach(drawItem);
       doc.booths.forEach(drawBooth);
-      drawSpots();
+      drawGrid();
       applyHighlight();
       drawSelection();
     }
     function redrawOne(o) {
       var t = typeOf(o), old = nodes[o.id];
-      if (t === 'spot') { if (old) old.setAttribute('transform', tf(o)); return; }
       var parent = old && old.parentNode, next = old && old.nextSibling;
       if (old) old.remove();
       if (t === 'booth') drawBooth(o); else drawItem(o);
@@ -232,7 +292,6 @@
       var px = 1 / st.k;
       st.sel.forEach(function (o) {
         var w = o.kind === 'marker' ? (o.w || 8) : o.w, h = o.kind === 'marker' ? (o.w || 8) : o.h;
-        if (typeOf(o) === 'spot') w = h = 12;
         var g = el('g', { transform: tf(o) }, gSel);
         el('rect', { class: 'bfm-selbox', x: -w / 2 - 3 * px, y: -h / 2 - 3 * px, width: w + 6 * px, height: h + 6 * px, 'stroke-width': 2 * px }, g);
       });
@@ -250,8 +309,9 @@
       }
     }
     function canMove(o) { var t = typeOf(o); return team && !opt.static && (t === 'booth' || st.edit); }
-    function canResize(o) { var t = typeOf(o); return team && (t === 'booth' || (st.edit && t === 'item' && o.kind !== 'marker')); }
-    function canRotate(o) { var t = typeOf(o); return team && (t === 'booth' || (st.edit && t === 'item' && o.kind !== 'marker')); }
+    // Outside Edit mode booths can only be moved and clicked; their size and turn change in Edit mode
+    function canResize(o) { return team && st.edit && o.kind !== 'marker'; }
+    function canRotate(o) { return team && st.edit && o.kind !== 'marker'; }
 
     function applyHighlight() {
       var any = false;
@@ -294,39 +354,11 @@
       return { x: p.x, y: p.y };
     }
 
-    /* ----- snapping ----- */
-    var pairs = null;
-    function spotPairs() {
-      if (pairs) return pairs;
-      pairs = [];
-      var sp = doc.spots || [];
-      for (var i = 0; i < sp.length; i++) for (var j = i + 1; j < sp.length; j++) {
-        var a = sp[i], b = sp[j], d = Math.hypot(a.x - b.x, a.y - b.y);
-        if (d < 11.2 || d > 13.2 || Math.abs(normRot(a.r - b.r)) > 3) continue;
-        var ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI, rel = Math.abs(normRot(ang - (a.r || 0))) % 90;
-        if (Math.min(rel, 90 - rel) > 8) continue;                      // neighbours sharing a side (in a row or a column)
-        pairs.push({ a: a, b: b, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, r: normRot(ang > 90 || ang <= -90 ? ang + 180 : ang) });
-      }
-      return pairs;
-    }
-    function taken(moving) {
-      var t = [];
-      doc.booths.forEach(function (b) { if (moving.indexOf(b) === -1) t = t.concat(boothSpaces(b)); });
-      return function (s) { return t.some(function (p) { return Math.hypot(p.x - s.x, p.y - s.y) < 3; }); };
-    }
-    function snapBooth(b, x, y, moving) {
-      if (!st.snap) return { x: round(x, 0.5), y: round(y, 0.5), r: b.r || 0 };
-      var used = taken(moving), best = null, bd = 1e9;
-      if (b.double) {
-        spotPairs().forEach(function (p) { var d = Math.hypot(p.x - x, p.y - y); if (d < 13 && d < bd && !used(p.a) && !used(p.b)) { bd = d; best = p; } });
-      } else if (Math.abs(b.w - 12) < 0.6 && Math.abs(b.h - 12) < 0.6) {
-        (doc.spots || []).forEach(function (s) { var d = Math.hypot(s.x - x, s.y - y); if (d < 10 && d < bd && !used(s)) { bd = d; best = s; } });
-      }
-      if (best) return { x: best.x, y: best.y, r: best.r || 0 };
-      // anywhere else: the campus grid of 12 ft squares, square to the campus
-      var r0 = Math.abs(normRot(b.r || 0)) % 180, turned = r0 > 45 && r0 < 135;
-      var w = turned ? b.h : b.w, h = turned ? b.w : b.h;
-      return { x: round(x - w / 2, 12) + w / 2, y: round(y - h / 2, 12) + h / 2, r: turned ? 90 : 0 };
+    /* ----- snapping (to the 12 ft grid) ----- */
+    function snapTo(o, x, y) {
+      var booth = typeOf(o) === 'booth';
+      if (!st.snap) return { x: round(x, booth ? 0.5 : 0.25), y: round(y, booth ? 0.5 : 0.25), r: o.r || 0 };
+      return snapPos(o, x, y, gridOf(doc), booth);
     }
 
     /* ----- pointer handling ----- */
@@ -337,7 +369,6 @@
       if (st.drag.began) return;
       st.drag.began = true;
       if (opt.onBegin) opt.onBegin();
-      if (st.drag.kind === 'move') drawSpots();
     }
     svg.addEventListener('pointerdown', function (e) {
       if (opt.static || e.button > 0) return;
@@ -383,9 +414,8 @@
       } else if (d.kind === 'move') {
         begin();
         var dx = p.x - d.p0.x, dy = p.y - d.p0.y, ai = d.objs.indexOf(d.anchor), ao = d.orig[ai];
-        var s;
-        if (d.objs.length === 1 && typeOf(d.anchor) === 'booth') s = snapBooth(d.anchor, ao.x + dx, ao.y + dy, d.objs);
-        else { var step = st.snap ? 1 : 0.25; s = { x: round(ao.x + dx, step), y: round(ao.y + dy, step), r: ao.r }; }
+        var s = snapTo(d.anchor, ao.x + dx, ao.y + dy);         // the others move with the one being dragged
+        if (d.objs.length > 1 || typeOf(d.anchor) !== 'booth') s.r = ao.r;
         var mx = s.x - ao.x, my = s.y - ao.y;
         d.objs.forEach(function (o, i) {
           o.x = d.orig[i].x + mx; o.y = d.orig[i].y + my;
@@ -399,7 +429,7 @@
       } else if (d.kind === 'rotate') {
         begin();
         var o = d.obj, ang = Math.atan2(p.y - o.y, p.x - o.x) * 180 / Math.PI + 90;
-        o.r = normRot(st.snap && !e.altKey ? round(ang, 15) : round(ang, 1));
+        o.r = normRot(st.snap && !e.altKey ? round(ang, typeOf(o) === 'booth' ? 90 : 15) : round(ang, 1));
         redrawOne(o); drawSelection();
       } else if (d.kind === 'box') {
         var x0 = Math.min(d.p0.x, p.x), y0 = Math.min(d.p0.y, p.y);
@@ -415,13 +445,12 @@
       st.drag = null;
       if (d.kind === 'pan' && !d.moved) { select([], true); return; }
       if (d.kind === 'box' && d.box) {
-        var inBox = all().concat(st.edit ? doc.spots || [] : []).filter(function (o) { return o.x >= d.box.x0 && o.x <= d.box.x1 && o.y >= d.box.y0 && o.y <= d.box.y1; });
+        var inBox = all().filter(function (o) { return o.x >= d.box.x0 && o.x <= d.box.x1 && o.y >= d.box.y0 && o.y <= d.box.y1; });
         select(st.sel.concat(inBox.filter(function (o) { return st.sel.indexOf(o) === -1; })), true);
         return;
       }
       if ((d.kind === 'move' || d.kind === 'resize' || d.kind === 'rotate') && d.began) {
         var changed = d.kind === 'move' ? d.objs : [d.obj];
-        drawSpots();
         changed.forEach(redrawOne);
         drawSelection();
         if (opt.onChange) opt.onChange(changed, d.kind);
@@ -438,14 +467,17 @@
 
     function resizeTo(d, p, free) {
       var o = d.obj, g = d.orig, h = d.h;
+      var grid = st.snap && !free && square(g.r), step = st.snap && !free ? 1 : 0.25, min = 2;
+      if (grid) { var gp = gridOf(doc); p = { x: gridLine(p.x, gp.x), y: gridLine(p.y, gp.y) }; }      // the dragged edges land on grid lines
       var local = rot(p.x - g.x, p.y - g.y, -g.r);
-      var x0 = -g.w / 2, x1 = g.w / 2, y0 = -g.h / 2, y1 = g.h / 2, step = st.snap && !free ? 1 : 0.25, min = 2;
-      if (h.indexOf('w') !== -1) x0 = Math.min(round(local.x, step), x1 - min);
-      if (h.indexOf('e') !== -1) x1 = Math.max(round(local.x, step), x0 + min);
-      if (h.indexOf('n') !== -1) y0 = Math.min(round(local.y, step), y1 - min);
-      if (h.indexOf('s') !== -1) y1 = Math.max(round(local.y, step), y0 + min);
+      function at(v) { return grid ? Math.round(v * 100) / 100 : round(v, step); }
+      var x0 = -g.w / 2, x1 = g.w / 2, y0 = -g.h / 2, y1 = g.h / 2;
+      if (h.indexOf('w') !== -1) x0 = Math.min(at(local.x), x1 - min);
+      if (h.indexOf('e') !== -1) x1 = Math.max(at(local.x), x0 + min);
+      if (h.indexOf('n') !== -1) y0 = Math.min(at(local.y), y1 - min);
+      if (h.indexOf('s') !== -1) y1 = Math.max(at(local.y), y0 + min);
       var c = rot((x0 + x1) / 2, (y0 + y1) / 2, g.r);
-      o.w = round(x1 - x0, 0.25); o.h = round(y1 - y0, 0.25); o.x = g.x + c.x; o.y = g.y + c.y;
+      o.w = round(x1 - x0, 0.25); o.h = round(y1 - y0, 0.25); o.x = Math.round((g.x + c.x) * 100) / 100; o.y = Math.round((g.y + c.y) * 100) / 100;
       if (typeOf(o) === 'booth' && o.double && o.w < 18) o.double = false;
       redrawOne(o); drawSelection();
     }
@@ -471,23 +503,21 @@
     return {
       svg: svg,
       get doc() { return doc; },
-      setDoc: function (d) { doc = d; pairs = null; st.sel = st.sel.map(function (o) { return byId(o.id); }).filter(Boolean); render(); },
+      setDoc: function (d) { doc = d; st.sel = st.sel.map(function (o) { return byId(o.id); }).filter(Boolean); render(); },
       render: render,
       redraw: function (objs) { (objs || []).forEach(redrawOne); drawSelection(); },
-      spotsChanged: function () { pairs = null; drawSpots(); },
       select: function (objs) { select(objs, false); },
       selection: function () { return st.sel.slice(); },
       setEdit: function (on) { st.edit = !!on; svg.classList.toggle('bfm-editing', st.edit); if (!on) st.sel = st.sel.filter(function (o) { return typeOf(o) === 'booth'; }); render(); },
-      setSnap: function (on) { st.snap = !!on; },
-      setShowSpots: function (on) { st.showSpots = !!on; drawSpots(); drawSelection(); },
+      setSnap: function (on) { st.snap = !!on; drawGrid(); },
       highlight: function (fn) { st.hi = fn; applyHighlight(); },
-      fit: function (what) { fit(what === 'all' ? { x: 0, y: 0, w: 1900, h: 1728 } : what === 'home' || !what ? HOME : what); },
+      fit: function (what) { fit(what === 'all' ? CAMPUS : what === 'home' || !what ? HOME : what); },
       fitObjects: function (objs, pad) { if (objs.length) fit(bounds(objs, pad == null ? 40 : pad)); },
       zoomBy: function (f) { zoomAt(f, st.vb.x + st.vb.w / 2, st.vb.y + st.vb.h / 2); },
       center: function () { return { x: st.vb.x + st.vb.w / 2, y: st.vb.y + st.vb.h / 2 }; },
       view: function () { return Object.assign({}, st.vb); },
       setView: function (vb) { setView(Object.assign({}, vb)); },
-      snapBooth: function (b, x, y) { return snapBooth(b, x, y, [b]); },
+      snapTo: snapTo,
       typeOf: typeOf,
       byId: byId,
       destroy: function () { if (ro) ro.disconnect(); svg.remove(); }
@@ -499,7 +529,7 @@
     var icons = {}, zones = {};
     doc.items.forEach(function (it) {
       var ic = it.icon && ICONS[it.icon];
-      if (ic && it.kind !== 'label') { var key = it.icon; if (!icons[key]) icons[key] = { icon: it.icon, text: it.kind === 'marker' && it.text ? it.text : ic.label, color: it.color || (it.kind === 'marker' ? ic.color : (KINDS[it.kind] || {}).color) }; }
+      if (ic && it.kind !== 'label' && it.kind !== 'building') { var key = it.icon; if (!icons[key]) icons[key] = { icon: it.icon, text: it.kind === 'marker' && it.text ? it.text : ic.label, color: it.color || (it.kind === 'marker' ? ic.color : (KINDS[it.kind] || {}).color) }; }
     });
     doc.booths.forEach(function (b) { if (b.zone) zones[b.zone] = b.color || PAL.orange; });
     var list = doc.booths.filter(function (b) { return b.n; }).map(function (b) {
@@ -575,6 +605,37 @@
     document.body.appendChild(a); a.click(); a.remove();
   }
 
-  root.BFMap = { create: create, PAL: PAL, SWATCHES: SWATCHES, ICONS: ICONS, KINDS: KINDS, BASE: BASE, HOME: HOME, STATUS_DOT: STATUS_DOT,
-    legend: legend, legendHtml: legendHtml, iconSvg: iconSvg, printPoster: printPoster, downloadImage: downloadImage, bounds: bounds, boothSpaces: boothSpaces, normRot: normRot };
+  // A full-screen button for a map frame: the browser's full screen where it can, otherwise the frame covers the window.
+  var FS = { el: null, btn: null };
+  var FS_ICON = { on: '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"', off: '<path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"' };
+  function fsActive() { return !!FS.el && (document.fullscreenElement === FS.el || FS.el.classList.contains('bfm-full')); }
+  function fsSync() {
+    if (!FS.btn) return;
+    var on = fsActive();
+    FS.btn.setAttribute('aria-pressed', String(on));
+    FS.btn.setAttribute('aria-label', on ? 'Leave full screen' : 'Full screen');
+    FS.btn.title = on ? 'Leave full screen' : 'Full screen';
+    FS.btn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">' + FS_ICON[on ? 'off' : 'on'] + ' fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    document.documentElement.classList.toggle('bfm-full-page', !!FS.el && FS.el.classList.contains('bfm-full'));
+    window.dispatchEvent(new Event('resize'));
+  }
+  function fullscreen(target, btn) {
+    if (FS.el && FS.el !== target) FS.el.classList.remove('bfm-full');
+    FS.el = target; FS.btn = btn;
+    btn.onclick = function () {
+      if (fsActive()) {
+        if (document.fullscreenElement) document.exitFullscreen(); else target.classList.remove('bfm-full');
+      } else if (target.requestFullscreen && document.fullscreenEnabled) {
+        target.requestFullscreen().catch(function () { target.classList.add('bfm-full'); fsSync(); });
+      } else target.classList.add('bfm-full');
+      fsSync();
+    };
+    fsSync();
+  }
+  document.addEventListener('fullscreenchange', fsSync);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && FS.el && FS.el.classList.contains('bfm-full') && !document.querySelector('dialog[open]')) { FS.el.classList.remove('bfm-full'); fsSync(); } });
+
+  root.BFMap = { create: create, PAL: PAL, SWATCHES: SWATCHES, ICONS: ICONS, KINDS: KINDS, BASE: BASE, HOME: HOME, CAMPUS: CAMPUS, CELL: CELL, STATUS_DOT: STATUS_DOT,
+    legend: legend, legendHtml: legendHtml, iconSvg: iconSvg, printPoster: printPoster, downloadImage: downloadImage, bounds: bounds, boothSpaces: boothSpaces, normRot: normRot,
+    square: square, bestGrid: bestGrid, boothsToGrid: boothsToGrid, buildingLabels: buildingLabels, fullscreen: fullscreen };
 })(window);

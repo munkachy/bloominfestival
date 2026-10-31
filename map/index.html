@@ -8,7 +8,7 @@
 <meta name="description" content="Map of Bloomin' Festival at St. Bernard Abbey, Cullman, Alabama: booths, food, restrooms and more. April 17–18, 2027.">
 <link rel="stylesheet" href="/assets/bf.css">
 <link rel="stylesheet" href="/assets/site.css">
-<link rel="stylesheet" href="/assets/map.css">
+<link rel="stylesheet" href="/assets/map.css?v=2">
 </head>
 <body>
 <header class="site-head">
@@ -41,7 +41,7 @@
     <p class="pmap-empty bf-lead" id="pm-empty" hidden>The festival map will be posted here before the festival. Questions? Call the festival office at 256-739-6682.</p>
     <div class="pmap-frame" id="pm-frame" hidden>
       <div class="bfm-host" id="pm-host"></div>
-      <div class="bfm-zoom"><button type="button" id="pm-zin" aria-label="Zoom in">+</button><button type="button" id="pm-zout" aria-label="Zoom out">−</button><button type="button" class="bfm-zfit" id="pm-zfit" aria-label="Show the whole festival">FIT</button></div>
+      <div class="bfm-zoom"><button type="button" id="pm-full" aria-label="Full screen"></button><button type="button" id="pm-zin" aria-label="Zoom in">+</button><button type="button" id="pm-zout" aria-label="Zoom out">−</button><button type="button" class="bfm-zfit" id="pm-zfit" aria-label="Show the whole festival">FIT</button></div>
       <div class="pmap-card" id="pm-card" role="dialog" aria-live="polite" hidden></div>
     </div>
     <div class="pmap-legend bfm-legend" id="pm-legend"></div>
@@ -58,8 +58,8 @@
 </footer>
 
 <script src="/assets/vault.js"></script>
-<script src="/assets/map.js"></script>
-<script src="/assets/map-public.js"></script>
+<script src="/assets/map.js?v=2"></script>
+<script src="/assets/map-public.js?v=2"></script>
 <script>
   (function () {
     var toggle = document.getElementById('menu-toggle');

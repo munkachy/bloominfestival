@@ -14,7 +14,7 @@
   var params = new URLSearchParams(location.search), mine = (params.get('booth') || '').trim();
 
   function show(d) {
-    doc = { booths: d.booths || [], items: d.items || [], spots: [] };
+    doc = { booths: d.booths || [], items: d.items || [] };
     doc.booths.forEach(function (b, i) { b.id = 'b' + i; });
     doc.items.forEach(function (it, i) { it.id = 'i' + i; });
     $('pm-empty').hidden = true; $('pm-frame').hidden = false; $('pm-tools').hidden = false;
@@ -81,6 +81,7 @@
   }
   $('pm-q').addEventListener('input', filter);
   $('pm-cat').addEventListener('change', filter);
+  M.fullscreen($('pm-frame'), $('pm-full'));
   $('pm-zin').onclick = function () { map && map.zoomBy(1.5); };
   $('pm-zout').onclick = function () { map && map.zoomBy(1 / 1.5); };
   $('pm-zfit').onclick = function () { map && map.fitObjects(doc.booths.concat(doc.items), 25); };

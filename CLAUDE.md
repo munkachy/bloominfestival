@@ -12,8 +12,8 @@ Publish (push to `main`) after testing; Pages takes a minute or two, longer when
 | `team/` | **Festival team tools** behind the team password: Vendor Desk (`assets/team.js`, `team.css`) and the Map tab (`assets/team-map.js`) |
 | `map/` | **Public festival map** (`assets/map-public.js`); `?booth=12` highlights a vendor's booth |
 | `assets/map.js`, `map.css` | The map engine shared by the team map, the public map, the poster and the picture |
-| `assets/map-start.json` | Last year's layout (77 booths, stands, tents, stage, 310 booth spots), used once when the team starts the map |
-| `images/map-*.webp` | Br. Nicholas's campus drawing: `map-campus` (whole campus, 2 px/ft), `map-festival` (grounds in detail), `map-festival-print` (3x, posters) |
+| `assets/map-start.json` | Last year's layout (57 booths square on the grid, stands, tents, stage, 15 building names), used once when the team starts the map |
+| `images/map-*.webp` | Br. Nicholas's campus drawing: `map-campus` (whole campus, 2 px/ft; the white page around it painted lawn green `#5a7443`, walkways kept), `map-festival` (grounds in detail), `map-festival-print` (3x, posters) |
 | `assets/vault.js` | All the locking (encryption), shared by the form, the Desk and the map |
 | `mailbox/Code.gs` | The Google Apps Script "mailbox" (see below). Not served; kept here as the source |
 
@@ -38,8 +38,18 @@ Publish (push to `main`) after testing; Pages takes a minute or two, longer when
 - Coordinates are **feet** on Br. Nicholas's page 1 (1 drawing unit = 1 ft, checked against OpenStreetMap building
   outlines and the football field). His page 2 (the grounds, with trees and lamps) is laid on top at
   `BASE.festival` in `map.js`. Booths are 12 × 12 ft; "two spaces" makes 24 × 12.
-- **Booth spots** (`doc.spots`) are the places booths snap to: straight runs along walkways and roads, a symmetric ring
-  of 16 (+4 inner) around the statue. Elsewhere booths snap to a 12 ft campus grid. Snap can be turned off.
+- **The grid** (map version 2, Nov 2026): booths stand square on a 12 ft grid over the whole campus; its origin is
+  `doc.settings.grid` ({x, y}, 0-12 ft; the start layout's is 10.78, 9.4, chosen to move last year's booths least).
+  With "Snap to grid" on, the grid lines show and booths snap their edges to them; in Edit mode tents, stands, the stage,
+  labels and areas snap their edges too, and icon markers sit in the middle of a cell. Booths can be resized or turned
+  only in Edit mode. The old booth spots and the statue ring are gone: `migrate()` in `team-map.js` moved maps started
+  before then over once (`settings.v = 2`).
+- **Building names** are `kind: 'building'` items (`BUILDINGS` in `map.js`, names from last year's Google Slides map).
+  Gym and Retreat Center weren't on that map; their places are a best guess for the user to check.
+- **Demo vendors** ("More" → "Add demo vendors") live only in the map document (`doc.demo`), never in the mailbox or the
+  published map. "Remove demo vendors" deletes them and frees their booths.
+- Both maps have a full-screen button (`BFMap.fullscreen`: the browser's full screen, or `.bfm-full` covering the window).
+- Script and style links on `team/` and `map/` carry `?v=N`: bump N when you change those files.
 - The team's map document is sealed and saved with `putMap` (optimistic `rev`; on a conflict the browser takes the
   other person's version and re-applies its own changes). **Publish** writes `public-map.json` (plain): booth layout,
   site elements, and vendors' business names/crafts/websites only if "Show vendors' names" is on. Never contact details.
@@ -51,7 +61,9 @@ There is no test folder in the repo (tests use real vendor exports, which must n
 Playwright against the real `mailbox/Code.gs` running on stand-in Google services (a small Node `vm` harness:
 DriveApp/PropertiesService/CacheService/LockService/Utilities/ContentService/MailApp in memory), routing the
 `script.google.com` URL to it and serving the repo for `http://localhost:8766`. Check desktop (1440) and phone (390),
-light and dark, no console errors, no sideways scroll. Never run a test that submits to the **live** mailbox: it would
+light and dark, no console errors, no sideways scroll, no button text running off its button. Serve the repo for real
+(`python3 -m http.server 8766`): otherwise Chrome's favicon request shows up as a console error. The site has no
+favicon, so a favicon 404 is expected. Never run a test that submits to the **live** mailbox: it would
 email the team and use up an application number.
 
 ## Old Google tools

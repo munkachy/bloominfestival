@@ -25,11 +25,15 @@
 .bfm-svg:not(.bfm-near) .bfm-lbl { display: none; }
 .bfm-mk { transform: scale(max(1, calc(22 / (var(--k) * var(--d))))); }
 
-/* booth spots (where booths snap) */
-.bfm-spot { pointer-events: none; }
-.bfm-spot rect { fill: rgba(255, 255, 255, .14); stroke: #fff; stroke-width: calc(1.3px / var(--k)); stroke-dasharray: calc(4px / var(--k)) calc(3px / var(--k)); }
-.bfm-editing .bfm-spot { pointer-events: all; }
-.bfm-editing .bfm-spot rect { fill: rgba(254, 207, 51, .16); }
+/* building names: dark letters with a white halo */
+.bfm-bldg-t { font-family: Georgia, "Times New Roman", serif; font-weight: 700; letter-spacing: .04em; fill: #1d2422; paint-order: stroke; stroke: #fff; stroke-linejoin: round;
+  font-size: max(calc(var(--f) * 1px), calc(11px / var(--k))); stroke-width: calc(3.5px / var(--k)); }
+.bfm-bldg { pointer-events: none; }
+.bfm-editing .bfm-bldg { pointer-events: all; }
+
+/* the 12 ft grid booths snap to (shown while snapping) */
+.bfm-grid path { fill: none; stroke: rgba(255, 255, 255, .26); stroke-width: 1; pointer-events: none; }
+.bfm-far .bfm-grid path { stroke: rgba(255, 255, 255, .14); }
 
 /* selection, handles, search highlight */
 .bfm-selbox { fill: none; stroke: #fecf33; stroke-dasharray: 6 3; vector-effect: non-scaling-stroke; }
@@ -41,6 +45,7 @@
 .bfm-rotline { stroke: #a25903; }
 .bfm-boxsel { fill: rgba(254, 207, 51, .15); stroke: #fecf33; stroke-dasharray: 5 3; }
 .bfm-dim .bfm-item:not(.bfm-hi) { opacity: .32; }
+.bfm-dim .bfm-bldg:not(.bfm-hi) { opacity: 1; }
 .bfm-hi .bfm-body, .bfm-hi circle:first-child { stroke: #fecf33 !important; stroke-width: calc(4px / var(--k)) !important; stroke-dasharray: none !important; }
 .bfm-hi { animation: bfm-pulse 1.4s ease-in-out 3; }
 @keyframes bfm-pulse { 50% { opacity: .55; } }
@@ -51,6 +56,12 @@
 .bfm-zoom button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff; color: #1d2422; font: 700 1.3rem/1 Arial, sans-serif; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); cursor: pointer; }
 .bfm-zoom button:focus-visible { outline: 3px solid #fecf33; outline-offset: 2px; }
 .bfm-zoom .bfm-zfit { font-size: .72rem; font-weight: 700; letter-spacing: .02em; }
+.bfm-zoom svg { display: block; margin: auto; }
+
+/* full screen (the browser's own, or covering the window where that isn't offered, e.g. iPhone) */
+.bfm-full { position: fixed !important; inset: 0 !important; z-index: 1000; width: auto !important; height: auto !important; max-height: none !important; min-height: 0 !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; }
+html.bfm-full-page, html.bfm-full-page body { overflow: hidden; }
+.pmap-frame:fullscreen { border: 0; border-radius: 0; }
 
 /* legend (poster and public page) */
 .bfm-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 18px 28px; }
@@ -82,9 +93,13 @@
 
 /* ===== the team's map (team-map.js) ===== */
 .tmap { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; grid-template-rows: auto minmax(0, 1fr); height: calc(100vh - 64px); height: calc(100dvh - 64px); min-height: 520px; }
+.tmap:fullscreen { height: 100%; min-height: 0; background: var(--bf-paper); }
+.tmap.bfm-full { min-height: 0; background: var(--bf-paper); }
+.tmap-demo { display: inline-block; vertical-align: middle; margin-left: 6px; padding: 2px 7px; border-radius: 999px; background: #7c3aed; color: #fff; font: 700 .62rem/1.3 var(--bf-label); letter-spacing: .1em; text-transform: uppercase; }
 .tmap-bar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--bf-rule); background: var(--bf-paper); }
 .tmap-bar .tmap-sep { width: 1px; height: 28px; background: var(--bf-rule); }
-.tmap-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--bf-rule); background: var(--bf-card); color: var(--bf-ink); font: 600 .78rem/1 var(--bf-label); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.tmap-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; max-width: 100%; padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--bf-rule); background: var(--bf-card); color: var(--bf-ink); font: 600 .78rem/1.2 var(--bf-label); letter-spacing: .08em; text-transform: uppercase; text-align: center; cursor: pointer; overflow-wrap: anywhere; }
+.tmap-btn svg { flex: none; }
 .tmap-btn:hover { border-color: var(--bf-ink-soft); }
 .tmap-btn[aria-pressed="true"] { background: var(--bf-ink); border-color: var(--bf-ink); color: var(--bf-paper); }
 .tmap-btn.tmap-edit[aria-pressed="true"] { background: #fecf33; border-color: #a25903; color: #343434; }
@@ -149,6 +164,9 @@
   .tmap-btn { min-height: 44px; padding: 0 12px; }
   .tmap-btn svg + .tmap-t { display: none; }
   .tmap-bar { gap: 6px; }
+  .tmap:fullscreen, .tmap.bfm-full { grid-template-rows: auto minmax(0, 1fr) auto; }
+  .tmap:fullscreen .tmap-main, .tmap.bfm-full .tmap-main { height: auto; }
+  .tmap:fullscreen .tmap-side, .tmap.bfm-full .tmap-side { max-height: 36vh; }
 }
 
 /* ===== the public map (map/) ===== */

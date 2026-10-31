@@ -42,7 +42,7 @@
 .bf-muted { color: var(--bf-ink-soft); }
 .bf-stack { display: grid; gap: 16px; }
 
-.bf-btn { white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 22px; border-radius: 999px; font: 600 .85rem/1 var(--bf-label); letter-spacing: .14em; text-transform: uppercase; text-decoration: none; border: 2px solid var(--bf-ink); color: var(--bf-ink) !important; background: transparent; cursor: pointer; }
+.bf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; max-width: 100%; padding: 8px 22px; border-radius: 999px; font: 600 .85rem/1.2 var(--bf-label); text-align: center; overflow-wrap: anywhere; letter-spacing: .14em; text-transform: uppercase; text-decoration: none; border: 2px solid var(--bf-ink); color: var(--bf-ink) !important; background: transparent; cursor: pointer; }
 .bf-btn:hover { transform: translateY(-1px); }
 .bf-btn-honey { background: var(--bf-honey); border-color: var(--bf-honey); color: var(--bf-on-honey) !important; }
 .bf-cta-row { display: flex; flex-wrap: wrap; gap: 10px; }
