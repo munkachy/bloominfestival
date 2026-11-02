@@ -18,13 +18,38 @@
     { id: 'withdrew', label: 'Withdrew' }
   ];
   var STATUS = {}; STATUSES.forEach(function (s) { STATUS[s.id] = s; });
+  // Crafts, named as the application form offers them. Older applications (the Google sheet, or "Something else")
+  // hold the vendor's own words, so those go to the craft whose word comes first in them; no match is "Other".
+  var CRAFTS = [
+    { id: 'Jewelry & accessories', short: 'Jewelry', words: /jewe?l|jewlery|bracelet|earring|necklace|charm bar|\bbead/ },
+    { id: 'Pottery & ceramics', short: 'Pottery & ceramics', words: /potter|ceramic|stoneware|porcelain|\bclay\b/ },
+    { id: 'Woodworking', short: 'Woodworking', words: /wood|carving|bird ?house|\bturning|\bcnc\b|pyrograph/ },
+    { id: 'Painting, prints & photography', short: 'Painting & photo', words: /paint|\bprints\b|photo|lettered|\bart\b|fine craft/ },
+    { id: 'Fiber arts', short: 'Fiber arts', words: /crochet|fiber|fibre|knit|embroider|quilt|macrame|yarn|sewing|sewn|rag rug|monogram/ },
+    { id: 'Clothing & hats', short: 'Clothing & hats', words: /clothin|boutique|shirt|\btees?\b|apparel|\bhats?\b|wearable/ },
+    { id: 'Glass', short: 'Glass', words: /glass/ },
+    { id: 'Metalwork', short: 'Metalwork', words: /metal|forged|blacksmith|\biron\b|copper|silverware|wire mesh|steel/ },
+    { id: 'Candles, soap & bath', short: 'Candles & bath', words: /candle|soap|bath|lotion|skin ?care|tallow|wax melt|essential oil|beauty|cosmetic|salve|scrub|beard|hygiene|scents|diffuser|clean|freshener|linen spray/ },
+    { id: 'Home & garden decor', short: 'Home & garden', words: /decor|door hanger|wreath|concrete|statuary|garden|yard art|wind ?chime|\bsigns?\b|bird feeder|hammock|coaster|plaster/ },
+    { id: 'Plants & flowers', short: 'Plants & flowers', words: /plant|flower|floral|bonsai/ },
+    { id: 'Mixed media', short: 'Mixed media', words: /mixed media|upcycl|sculpture|resin/ },
+    { id: 'Food, treats & honey', short: 'Food & treats', words: /food|fudge|cand(y|ies)|coffee|bbq|sauce|honey|bake|cookie|bread|popcorn|kettle|lemonade|jerky|\bjams?\b|jell|spice|season|cheese|apple|ice cream|peanut|sweet|treat|\bmix|snack|dessert|\bpies\b|corn\b|salsa|brittle|confection|pork skin|cheesecake|\btea\b|drink|beverage|culinary|sourdough|vinaigrette|glaze|\brubs?\b/ },
+    { id: 'Other', short: 'Other', words: null }
+  ];
+  var CRAFT = {}; CRAFTS.forEach(function (c) { CRAFT[c.id] = c; });
+  function craftOf(text) {
+    if (CRAFT[text]) return text;
+    var t = String(text || '').toLowerCase().replace(/polymer clay/g, 'polymer'), best = 'Other', at = Infinity;
+    CRAFTS.forEach(function (c) { var m = c.words && c.words.exec(t); if (m && m.index < at) { at = m.index; best = c.id; } });
+    return best;
+  }
   // Who is emailed about new applications until the team changes it in Settings (kept in pieces so address
   // harvesters reading this public file don't find them).
   var NOTIFY_DEFAULT = [['rgongre', 'stbernardprep.com'], ['braugustine', 'stbernardabbey.com']].map(function (p) { return p.join('@'); });
   var PAY_URL = 'https://bloominfestival.com/become-an-exhibitor/#bf-apply';
 
   var S = {
-    session: null, apps: [], season: V.SEASON, filter: 'all', q: '', sort: 'newest', openNo: null, tab: 'vendors',
+    session: null, apps: [], season: V.SEASON, filter: 'all', craft: 'all', q: '', sort: 'newest', openNo: null, tab: 'vendors',
     photoUrls: {}, loadedAt: null
   };
 
@@ -233,7 +258,7 @@
     if (S.tab !== 'map') return;
     BFTeamMap.open(root, {
       session: S.session, apps: function () { return S.apps; }, statusOf: statusOf, titleOf: titleOf, myName: myName, friendly: friendly,
-      openVendor: function (no) { var v = find(no); if (v) S.season = v.season; S.openNo = no; S.filter = 'all'; go('vendors'); }
+      openVendor: function (no) { var v = find(no); if (v) S.season = v.season; S.openNo = no; S.filter = 'all'; S.craft = 'all'; go('vendors'); }
     });
   }
 
@@ -261,6 +286,7 @@
     for (var i = 0; i < d.applications.length; i++) {
       var a = d.applications[i], v = { no: a.no, season: a.season, at: a.at, legacy: !!a.legacy, photoIds: a.photos || [], sealed: a.app, rev: 0, rec: null };
       try { v.d = clean(await V.openApplication(S.session, a.app), v.legacy); } catch (x) { v.d = clean({ name: '(could not be opened)' }); v.broken = true; }
+      v.craft = craftOf(v.d.category);
       var r = d.records[a.no];
       if (r) { v.rev = r.rev; try { v.rec = await V.openTeam(S.session, r.ct); } catch (x) {} }
       apps.push(v);
@@ -300,6 +326,7 @@
     var q = key(S.q);
     var list = seasonApps().filter(function (v) {
       if (S.filter !== 'all' && statusOf(v) !== S.filter) return false;
+      if (S.craft !== 'all' && v.craft !== S.craft) return false;
       if (!q) return true;
       return [v.no, v.d.name, v.d.business, v.d.email, v.d.phone, v.d.category, v.d.about, v.d.address].some(function (x) { return key(x).indexOf(q) !== -1; });
     });
@@ -314,8 +341,13 @@
   function vendorsView() {
     var seasons = {}; S.apps.forEach(function (v) { seasons[v.season] = (seasons[v.season] || 0) + 1; });
     if (!seasons[S.season]) seasons[S.season] = 0;
+    // Each row of chips counts within the other's choice: pick Paid and the crafts show how many paid potters there are.
     var counts = { all: 0 }; STATUSES.forEach(function (s) { counts[s.id] = 0; });
-    seasonApps().forEach(function (v) { counts.all++; counts[statusOf(v)]++; });
+    var crafts = { all: 0 }; CRAFTS.forEach(function (c) { crafts[c.id] = 0; });
+    seasonApps().forEach(function (v) {
+      if (S.craft === 'all' || v.craft === S.craft) { counts.all++; counts[statusOf(v)]++; }
+      if (S.filter === 'all' || statusOf(v) === S.filter) { crafts.all++; crafts[v.craft]++; }
+    });
     screen('<div class="tm-desk">' +
       '<div class="tm-top"><div><p class="bf-label">Vendor Desk</p><h1>Bloomin\' Festival ' + S.season + '</h1></div>' +
       '<div class="tm-top-tools"><label class="tm-season"><span class="tm-sr">Festival year</span><select id="season">' +
@@ -324,6 +356,12 @@
       '<div class="tm-chips" role="group" aria-label="Show">' +
       '<button type="button" class="tm-chip" data-f="all" aria-pressed="' + (S.filter === 'all') + '">All <b>' + counts.all + '</b></button>' +
       STATUSES.map(function (s) { return '<button type="button" class="tm-chip st-' + s.id + '" data-f="' + s.id + '" aria-pressed="' + (S.filter === s.id) + '"><i></i>' + esc(s.short || s.label) + ' <b>' + counts[s.id] + '</b></button>'; }).join('') +
+      '</div>' +
+      '<div class="tm-chips tm-crafts" role="group" aria-label="Craft"><span class="tm-crafts-l" aria-hidden="true">Craft</span>' +
+      '<button type="button" class="tm-chip" data-c="all" aria-pressed="' + (S.craft === 'all') + '">All crafts <b>' + crafts.all + '</b></button>' +
+      CRAFTS.filter(function (c) { return crafts[c.id] || S.craft === c.id; }).map(function (c) {
+        return '<button type="button" class="tm-chip" data-c="' + esc(c.id) + '" aria-pressed="' + (S.craft === c.id) + '" title="' + esc(c.id) + '">' + esc(c.short) + ' <b>' + crafts[c.id] + '</b></button>';
+      }).join('') +
       '</div>' +
       '<div class="tm-bar"><input type="search" id="q" placeholder="Search names, businesses, crafts, emails…" value="' + esc(S.q) + '" aria-label="Search">' +
       '<label class="tm-sort"><span class="tm-sr">Sort</span><select id="sort"><option value="newest">Newest first</option><option value="name">By name</option><option value="status">By status</option></select></label>' +
@@ -335,6 +373,9 @@
     $('#season').onchange = function () { S.season = +this.value; S.filter = 'all'; vendorsView(); };
     $('#refresh').onclick = loadVendors;
     $all('[data-f]').forEach(function (b) { b.onclick = function () { S.filter = b.getAttribute('data-f'); vendorsView(); }; });
+    $all('[data-c]').forEach(function (b) { b.onclick = function () { S.craft = b.getAttribute('data-c'); vendorsView(); }; });
+    var row = $('.tm-crafts'), on = $('.tm-crafts [aria-pressed="true"]');     // on phones the row scrolls: keep the choice in sight
+    if (row.scrollWidth > row.clientWidth) row.scrollLeft += on.getBoundingClientRect().left - row.getBoundingClientRect().left - (row.clientWidth - on.offsetWidth) / 2;
     $('#q').oninput = function () { S.q = this.value; drawList(); };
     $('#sort').onchange = function () { S.sort = this.value; drawList(); };
     $('#csv').onclick = downloadCsv;
@@ -397,7 +438,7 @@
       '<dl class="tm-dl">' +
       row('Email', d.email) + row('Phone', d.phone) + row('Address', d.address) +
       (site ? '<dt>Website</dt><dd><a href="' + esc(site) + '" target="_blank" rel="noopener">' + esc(d.website) + '</a></dd>' : '') +
-      row('Category', d.category) +
+      row('Category', d.category) + (v.craft !== d.category ? row('Listed under', v.craft) : '') +
       row('Booth spaces', d.booths === 2 ? '2, side by side' : d.booths === 1 ? '1' : '') +
       row('Electricity', d.electricity === 'yes' ? 'Yes (+$25)' : d.electricity === 'no' ? 'No' : '') +
       row('Exhibited before', d.returning === 'yes' ? 'Yes' + (d.returningYears ? ' (' + d.returningYears + ')' : '') : d.returning === 'no' ? 'No' : '') +
@@ -519,11 +560,11 @@
 
   /* ---------- download the list ---------- */
   function downloadCsv() {
-    var cols = ['Number', 'Status', 'Business', 'Name', 'Email', 'Phone', 'Address', 'Website', 'Category', 'Booth spaces', 'Electricity', 'Returning', 'Applied', 'Latest team note'];
+    var cols = ['Number', 'Status', 'Business', 'Name', 'Email', 'Phone', 'Address', 'Website', 'Craft', 'What they make', 'Booth spaces', 'Electricity', 'Returning', 'Applied', 'Latest team note'];
     var lines = [cols];
     visible().forEach(function (v) {
       var d = v.d, notes = (v.rec && v.rec.notes) || [];
-      lines.push([v.no, (STATUS[statusOf(v)] || {}).label, d.business, d.name, d.email, d.phone, d.address, d.website, d.category, d.booths,
+      lines.push([v.no, (STATUS[statusOf(v)] || {}).label, d.business, d.name, d.email, d.phone, d.address, d.website, v.craft, d.category, d.booths,
         d.electricity === 'yes' ? 'Yes' : d.electricity === 'no' ? 'No' : '', v.returning ? 'Yes' : 'No',
         when(v.at), notes.length ? notes[notes.length - 1].text : '']);
     });

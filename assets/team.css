@@ -91,6 +91,9 @@
 .tm-chip[aria-pressed="true"] { background: var(--bf-ink); border-color: var(--bf-ink); color: var(--bf-paper); }
 .tm-chip[aria-pressed="true"] b { color: var(--bf-paper); }
 .tm-chip[aria-pressed="true"] i { box-shadow: 0 0 0 2px var(--bf-paper); }
+.tm-crafts { align-items: center; gap: 6px; }
+.tm-crafts-l { font: 600 .74rem/1 var(--bf-label); letter-spacing: .1em; text-transform: uppercase; color: var(--bf-ink-soft); margin-right: 4px; }
+.tm-crafts .tm-chip { min-height: 36px; padding: 0 13px; font: 600 .88rem/1 var(--bf-body); letter-spacing: 0; text-transform: none; }
 .tm-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .tm-bar input[type="search"] { flex: 1 1 16rem; width: auto; }
 .tm-list { list-style: none; padding: 0; display: grid; gap: 8px; }
@@ -169,6 +172,9 @@
   .tm-dl { grid-template-columns: 1fr; gap: 0; }
   .tm-dl dd { margin-bottom: 10px; }
   .tm-chip { min-height: 40px; padding: 0 11px; gap: 6px; font-size: .72rem; letter-spacing: .04em; }
+  /* the crafts ride in one row that scrolls sideways, so they don't push the list off the first screen */
+  .tm-crafts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+  .tm-crafts .tm-chip { flex: none; min-height: 36px; font-size: .85rem; }
 }
 
 /* ---------- printing ---------- */
