@@ -102,9 +102,11 @@ The old Google Form and response sheets are no longer linked. Applications from 
 
 ## People
 
+This file is public (Pages serves it at `/CLAUDE.md`, and the repo is public): roles and first names only, no contact details.
+
 - **The user** (Br. Augustine, St. Bernard Abbey) owns this repo and the GitHub Pages settings.
 - **Matt** (St. Bernard IT): GoDaddy and campus DNS. Busy; short, specific requests work best.
-- **Rachael Stover**, Vice President: not technical; explain in plain words.
+- **The Vice President** (Rachael): not technical; explain in plain words.
 
 ## Related repo: munkachy/work
 
