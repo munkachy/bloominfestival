@@ -4,6 +4,9 @@ The festival of St. Bernard Abbey and St. Bernard Prep (Cullman, AL), April 17�
 (custom domain in `CNAME`); plain HTML, CSS and JS, no build step. Paths are **absolute** (`/assets/...`).
 Publish (push to `main`) after testing; Pages takes a minute or two, longer when GitHub's queue is slow.
 
+**Keep this file current.** Whenever a session changes the site, its hosting, DNS, accounts or workflow, update the
+matching section here in the same commit, so the next session can start from this file alone.
+
 | Path | What |
 |---|---|
 | `index.html`, `artisans/`, `become-a-sponsor/`, … | The public pages. Styles: `assets/bf.css` (colours, fonts, buttons) + `assets/site.css` (header, footer, dark mode) |
@@ -70,3 +73,43 @@ email the team and use up an application number.
 
 The old Google Form and response sheets are no longer linked. Applications from the sheet can be brought into the Desk
 (Settings → Import, CSV), locked in the browser. The user may close the Google Form and set the sheets to Restricted.
+
+## Hosting, domain and DNS (moved off WordPress, 29–30 Oct 2026)
+
+- **Live address:** `https://bloominfestival.com`. The custom domain in GitHub Pages (and `CNAME`) is the **bare
+  domain**; GitHub redirects `www` → bare and `http` → `https`. "Enforce HTTPS" is on. Don't remove and re-add the
+  custom domain unless the certificate is broken: each time restarts GitHub's certificate request (up to an hour, and
+  once it stuck for a day). Changing the domain also commits to `CNAME`, so pull before pushing.
+- **Registrar and DNS: GoDaddy** (nameservers `ns09`/`ns10.domaincontrol.com`). Only **Matt** (St. Bernard IT) has the
+  GoDaddy login; the user asks him for DNS changes (or for GoDaddy Delegate Access). Records as of 2 Nov 2026:
+  `@` A `185.199.108.153` `.109.153` `.110.153` `.111.153`; `@` AAAA `2606:50c0:8000::153` … `8003::153`;
+  `www` CNAME `munkachy.github.io`; MX `smtp.secureserver.net` (0) and `mailstore1.secureserver.net` (10);
+  TXT `v=spf1 a mx ptr include:secureserver.net ~all`. The domain's email isn't really used: the site's contacts are
+  `festivals@stbernardprep.com` and `ahowze@stbernardprep.com`.
+- **Before 29 Oct** the DNS sat in a Cloudflare account nobody here can reach (probably set up in Sept 2022 by
+  High Level Marketing, who built the first site, and used by the WordPress host **Superpath**). The old site sent an
+  HSTS header (`max-age` 90 days, `includeSubDomains`) and permanently redirected bare → `www`. Consequences that may
+  still show up for a while: a visitor whose browser kept the old redirect can hit "too many redirects" (fix: clear
+  the site's data in the browser, or a private window). Not on the HSTS preload list.
+- **Campus network:** Matt can add records on the St. Bernard internal DNS to test changes on campus only. That zone
+  was removed after the move; campus now uses the public DNS.
+- **Superpath** (old WordPress hosting) is being cancelled; nothing on the new site depends on it. All images and PDFs
+  the site uses are in this repo.
+- **Moving the repo** to an official St. Bernard GitHub account later: transfer it (Settings → Transfer ownership);
+  the A/AAAA records stay; change only the `www` CNAME to the new `<account>.github.io`, then check Settings → Pages.
+- Check from a cloud session with `curl` (send a browser User-Agent) and `https://dns.google/resolve?name=…&type=…`.
+  The session's proxy can make HTTPS checks flaky; repeat a few times before concluding anything.
+
+## People
+
+- **The user** (Br. Augustine, St. Bernard Abbey) owns this repo and the GitHub Pages settings.
+- **Matt** (St. Bernard IT): GoDaddy and campus DNS. Busy; short, specific requests work best.
+- **Rachael Stover**, Vice President: not technical; explain in plain words.
+
+## Related repo: munkachy/work
+
+`munkachy/work`, branch `claude/happy-lovelace-6g0twv`, folder `bloominfestival/`, holds the original redesign this
+site was copied from: `site/` (first static version, relative paths), `src/` and `tools/` (build scripts),
+`original-text/` (text of the old WordPress pages), `wordpress/` (the redesign as Custom HTML blocks and an XML import,
+from when the plan was to update WordPress), `theme/`, and `backups/2026-10-19/` (full WordPress export: 36 pages,
+3 posts, menus; media are only links to the old host). This repo has moved on since; edit **here**, not there.
