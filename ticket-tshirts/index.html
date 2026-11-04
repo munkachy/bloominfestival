@@ -8,6 +8,8 @@
 <meta name="description" content="Bloomin' Festival: a juried arts and crafts fair at St. Bernard Abbey in Cullman, Alabama. April 17–18, 2027.">
 <link rel="stylesheet" href="/assets/bf.css">
 <link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/apply.css">
+<link rel="stylesheet" href="/assets/tickets.css">
 </head>
 <body>
 <header class="site-head">
@@ -35,18 +37,57 @@
   </div>
 </section>
 
-<section class="bf-block">
-  <div class="bf-wrap">
-    <div class="bf-head">
-      <h2>Order form</h2>
-      <p class="bf-muted">Orders will be processed securely by Blackbaud once sales open.</p>
-    </div>
-    <div class="bf-embed">
-<div class="bf-soon">
-  <p class="bf-label">Coming soon</p>
-  <h3>Ticket sales open soon</h3>
-  <p>Sweepstakes tickets and festival T-shirts aren't on sale yet. Stay tuned: the order form will appear right here when sales begin. Questions? Email <a href="mailto:festivals@stbernardprep.com">festivals@stbernardprep.com</a> or call 256-739-6682.</p>
-</div>
+<section class="bf-block ap-block">
+  <div class="bf-wrap ap-wrap">
+    <form id="tk-form" novalidate>
+      <fieldset class="ap-sec">
+        <legend><span class="ap-num">1</span>Sweepstakes tickets</legend>
+        <div class="ap-field">
+          <label for="tk-sheets">Sheets</label>
+          <p class="ap-hint" id="h-sheets">Each sheet has 6 tickets for $25. Order as many sheets as you like.</p>
+          <div class="tk-qty">
+            <button type="button" id="tk-minus" aria-label="One fewer sheet">−</button>
+            <input id="tk-sheets" name="sheets" type="number" inputmode="numeric" min="0" max="100" step="1" value="1" aria-describedby="h-sheets">
+            <button type="button" id="tk-plus" aria-label="One more sheet">+</button>
+            <span class="bf-muted" id="tk-count"></span>
+          </div>
+        </div>
+        <div class="ap-field">
+          <label for="tk-gift">Add a gift to St. Bernard Prep <span class="ap-opt">optional</span></label>
+          <input id="tk-gift" name="gift" inputmode="decimal" placeholder="$0.00" autocomplete="off">
+        </div>
+        <div class="tk-total"><span class="bf-label">Total</span><b id="tk-total">$25.00</b></div>
+      </fieldset>
+
+      <fieldset class="ap-sec">
+        <legend><span class="ap-num">2</span>About you</legend>
+        <div class="tk-two">
+          <div class="ap-field"><label for="tk-first">First name</label><input id="tk-first" name="first" autocomplete="given-name" required></div>
+          <div class="ap-field"><label for="tk-last">Last name</label><input id="tk-last" name="last" autocomplete="family-name" required></div>
+        </div>
+        <div class="ap-field">
+          <label for="tk-email">Email</label>
+          <p class="ap-hint" id="h-email">For your order confirmation and if we need to reach you about the drawing.</p>
+          <input id="tk-email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off" required aria-describedby="h-email">
+        </div>
+        <div class="ap-field"><label for="tk-phone">Phone</label><input id="tk-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" required></div>
+        <div class="ap-field"><label for="tk-address">Mailing address</label><input id="tk-address" name="address" autocomplete="street-address" required></div>
+        <div class="ap-row3">
+          <div class="ap-field ap-city"><label for="tk-city">City</label><input id="tk-city" name="city" autocomplete="address-level2" required></div>
+          <div class="ap-field"><label for="tk-state">State</label><input id="tk-state" name="state" autocomplete="address-level1" maxlength="20" required></div>
+          <div class="ap-field"><label for="tk-zip">ZIP</label><input id="tk-zip" name="zip" autocomplete="postal-code" inputmode="numeric" maxlength="10" required></div>
+        </div>
+      </fieldset>
+
+      <p class="tk-msg" id="tk-msg" role="alert" hidden></p>
+      <div class="bf-cta-row"><button class="bf-btn bf-btn-honey" id="tk-pay" type="button">Continue to secure payment</button></div>
+      <p class="ap-hint">Payment is processed securely by Blackbaud for St. Bernard Preparatory School. We never see your card number. Sweepstakes tickets are not tax-deductible. Questions? Email <a href="mailto:festivals@stbernardprep.com">festivals@stbernardprep.com</a> or call 256-739-6682.</p>
+    </form>
+
+    <div class="tk-done" id="tk-done" role="status" hidden>
+      <p class="bf-label">Order complete</p>
+      <h2>Thank you!</h2>
+      <p>Your payment of <strong id="tk-paid"></strong> went through, and your tickets are entered. Keep this page or your card statement as your record. Good luck in the drawing!</p>
     </div>
   </div>
 </section>
@@ -62,6 +103,8 @@
 </footer>
 
 <script src="/assets/bf.js"></script>
+<script src="https://pay.blackbaud.com/scripts/checkout"></script>
+<script src="/assets/tickets.js"></script>
 <script>
   (function () {
     var toggle = document.getElementById('menu-toggle');

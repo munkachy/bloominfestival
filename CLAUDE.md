@@ -13,6 +13,7 @@ matching section here in the same commit, so the next session can start from thi
 | `become-an-exhibitor/` | Exhibitor info, rules (`#bf-rules`), and the **payment gate**: two Yes/No questions before the Blackbaud form appears (`assets/bf.js`) |
 | `become-an-exhibitor/apply/` | **The vendor application** (`assets/apply.js`, `apply.css`). Replaced the Google Form (Oct 2026) |
 | `team/` | **Festival team tools** behind the team password: Vendor Desk (`assets/team.js`, `team.css`) and the Map tab (`assets/team-map.js`). The Desk's Craft chips use `CRAFTS` (the form's categories); free-text crafts from the old sheet or "Something else" are sorted by the first craft word in them, else Other. **Payments** (amount due, each payment with how/date/note, balance) live in the sealed team record (`rec.due`, `rec.payments`, cents); the usual fee is `BOOTH_FEE`/`POWER_FEE` in `team.js` (update with the exhibitor page). Paying in full marks the vendor Paid; "Owes a balance" lists partial payers. Online booth payments come in automatically from the office Mac (see "Blackbaud payments" below) |
+| `ticket-tshirts/` | **Sweepstakes ticket order form** (`assets/tickets.js`, `tickets.css`; reuses `apply.css` field styles). Sheets of 6 tickets for $25 plus an optional gift, paid through Blackbaud Checkout. See "Ticket orders" below. T-shirts are not sold online yet |
 | `map/` | **Public festival map** (`assets/map-public.js`); `?booth=12` highlights a vendor's booth |
 | `assets/map.js`, `map.css` | The map engine shared by the team map, the public map, the poster and the picture |
 | `assets/map-start.json` | Last year's layout (57 booths square on the grid, stands, tents, stage, 15 building names), used once when the team starts the map |
@@ -73,6 +74,24 @@ matching section here in the same commit, so the next session can start from thi
 - **Fallback:** `python3 -m bbreport booth-payments` writes `betterBB/data/out/booth-payments-<event>.csv` for
   **Settings → Import payments (CSV)** (`preparePayments`; same matching, with a preview). That file is real data:
   never copy it into this repo.
+
+## Ticket orders (sweepstakes sheets on `ticket-tshirts/`)
+
+- The page loads Blackbaud's checkout script (`https://pay.blackbaud.com/scripts/checkout`) and opens Blackbaud's
+  card pop-up; the site never sees card numbers. Payment configuration: St. Bernard Preparatory School merchant
+  account ("Blackbaud Merchant Services - Annual Appeal", **live**: real charges).
+- **Deliberate exception to "nothing personal leaves the browser":** the buyer's name, email, phone and address are
+  sent over HTTPS to the development office's betterBB server on the office Mac (`https://br.taile138aa.ts.net`,
+  Tailscale Funnel), because the gift has to be recorded in Raiser's Edge. They are never sent to the mailbox or kept
+  in this repo or the browser. The Mac must be on for orders to work; if it isn't, the form says to call the office.
+- Flow: `POST /give/web/start` (server works out the amount; the browser's total is display only) → Blackbaud pop-up
+  → `POST /give/web/complete` (server captures exactly that amount, then creates a Donation gift in RE on fund 206 /
+  appeal 106 and adds the buyer to event 21 with the fee "Sweepstakes sheet (6 tickets)" (fee ID 84) × sheets, the
+  gift applied to it). Buyers not matched to exactly one RE record by email + last name wait on the office page
+  (`/online-gifts`) for staff. Code: `betterBB/reporting/bbreport/give.py`; settings:
+  `betterBB/config/give-bloomin-2026.json`. CORS allows only bloominfestival.com.
+- Price/tickets per sheet live in both `tickets.js` (display) and the betterBB config (what's charged): change both.
+- These buyers are event 21 participants, so the booth sync skips anyone the ticket form added.
 
 ## The map
 
