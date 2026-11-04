@@ -294,6 +294,7 @@
     }
     S.apps = apps;
     S.loadedAt = new Date();
+    S.bb = d.payments || null;
     markReturning();
     if (window.BFTeamMap) { try { await BFTeamMap.load(d.map, S.session); } catch (x) {} }
   }
@@ -302,6 +303,7 @@
     try {
       await fetchApps(function (n, of) { if ($('#lw')) $('#lw').textContent = 'Opening the applications… ' + n + ' of ' + of; });
       vendorsView();
+      checkBlackbaud(false);
     } catch (x) {
       screen('<div class="tm-card tm-narrow"><h1>Couldn\'t open the applications</h1><p>' + esc(friendly(x)) + '</p><button class="bf-btn bf-btn-honey" id="retry">Try again</button></div>');
       $('#retry').onclick = loadVendors;
@@ -361,6 +363,7 @@
       (counts.owes || S.filter === 'owes' ? '<button type="button" class="tm-chip tm-chip-owe" data-f="owes" aria-pressed="' + (S.filter === 'owes') + '" title="Paid part, balance still owed">Owes a balance <b>' + counts.owes + '</b></button>' : '') +
       '</div>' +
       (collected ? '<p class="tm-money">Payments recorded for ' + S.season + ': <b>' + money(collected) + '</b> collected' + (owed ? ', <b>' + money(owed) + '</b> still owed on partial payments' : '') + '.</p>' : '') +
+      '<div id="bbline" class="tm-bb">' + bbLineHtml() + '</div>' +
       '<div class="tm-chips tm-crafts" role="group" aria-label="Craft"><span class="tm-crafts-l" aria-hidden="true">Craft</span>' +
       '<button type="button" class="tm-chip" data-c="all" aria-pressed="' + (S.craft === 'all') + '">All crafts <b>' + crafts.all + '</b></button>' +
       CRAFTS.filter(function (c) { return crafts[c.id] || S.craft === c.id; }).map(function (c) {
@@ -384,6 +387,7 @@
     $('#sort').onchange = function () { S.sort = this.value; drawList(); };
     $('#csv').onclick = downloadCsv;
     $('#print').onclick = function () { window.print(); };
+    wireBbLine();
     drawList();
     if (S.openNo) openPanel(S.openNo);
   }
@@ -521,12 +525,23 @@
       '<label><span>Note (optional)</span><input id="paynote" maxlength="200" placeholder="Receipt number, who took it…"></label>' +
       '<button class="bf-btn bf-btn-honey" type="submit">Record payment</button></form></div>';
   }
-  // Adds payments to a team record (skipping Blackbaud refs it already has); paid in full marks them Paid.
+  // Adds payments to a team record, skipping Blackbaud refs it already has. A Blackbaud payment the team already typed in
+  // by hand (Online (Blackbaud), same amount, no ref) is linked to it instead of counted twice. Paid in full marks them Paid.
+  function handTyped(list, p) { return list.filter(function (x) { return !x.ref && x.how === 'Online (Blackbaud)' && x.amount === p.amount; })[0]; }
   function addPayments(v, rec, list) {
-    var refs = {}; (rec.payments || []).forEach(function (x) { if (x.ref) refs[x.ref] = 1; });
-    var add = list.filter(function (p) { if (p.ref && refs[p.ref]) return false; if (p.ref) refs[p.ref] = 1; return true; });
+    rec.payments = rec.payments || [];
+    var refs = {}; rec.payments.forEach(function (x) { if (x.ref) refs[x.ref] = 1; });
+    var add = list.filter(function (p) {
+      if (p.ref && refs[p.ref]) return false;
+      if (p.ref) {
+        refs[p.ref] = 1;
+        var same = handTyped(rec.payments, p);
+        if (same) { same.ref = p.ref; same.note = (same.note ? same.note + ' ' : '') + '(Matched to Blackbaud gift ' + p.ref + '.)'; return false; }
+      }
+      return true;
+    });
     if (!add.length) return 0;
-    rec.payments = (rec.payments || []).concat(add);
+    rec.payments = rec.payments.concat(add);
     var st = STATUS[rec.status] ? rec.status : statusOf(v);
     var paid = rec.payments.reduce(function (s, x) { return s + x.amount; }, 0), due = typeof rec.due === 'number' ? rec.due : usualFee(v);
     if (paid >= due && st !== 'paid' && st !== 'withdrew') {     // paid in full: mark them Paid
@@ -675,6 +690,16 @@
       '<input type="file" id="csvfile" accept=".csv,text/csv">' +
       '<div id="importinfo"></div></section>' +
 
+      '<section class="tm-card"><p class="bf-label">Payments</p><h2>Blackbaud payments from the office Mac</h2>' +
+      '<p>The office Mac checks Raiser\'s Edge every 30 minutes and sends the booth payments here, locked so only the team can read them. ' +
+      'The Desk adds new ones when it opens, or when you press <strong>Check now</strong> in the Vendors tab.</p>' +
+      '<p id="syncstate" class="tm-muted">Loading…</p>' +
+      '<p>To connect the Mac (once): on it, in the betterBB folder\'s <strong>reporting</strong> folder, run <code>python3 -m bbreport booth-sync --setup</code>, then paste the key it shows here.</p>' +
+      '<div class="tm-row"><label class="tm-sr" for="synckey">Sync key from the office Mac</label><input id="synckey" autocomplete="off" spellcheck="false" placeholder="Sync key (64 letters and numbers)">' +
+      '<button class="bf-btn bf-btn-honey" id="savesync">Save</button></div>' +
+      '<div class="tm-row"><span class="tm-ok" id="syncok" hidden>Saved.</span><button type="button" class="tm-link" id="stopsync" hidden>Disconnect the Mac</button></div>' +
+      '<p class="tm-err" id="syncerr" role="alert" hidden></p></section>' +
+
       '<section class="tm-card"><p class="bf-label">Bring over</p><h2>Import payments (CSV)</h2>' +
       '<p>Booth fees paid online on the Blackbaud form. On the office Mac, in the betterBB folder\'s <strong>reporting</strong> folder, run ' +
       '<code>python3 -m bbreport booth-payments</code>, then pick the file it saves (in <strong>betterBB/data/out</strong>) here. ' +
@@ -712,6 +737,116 @@
     $('#savename').onclick = function () { store('bf-team-name', $('#myname').value.trim().slice(0, 30) || 'Team'); whoEl.querySelector('span').textContent = myName(); };
     $('#csvfile').onchange = function () { if (this.files[0]) prepareImport(this.files[0]); };
     $('#payfile').onchange = function () { if (this.files[0]) preparePayments(this.files[0]); };
+    async function syncState() {
+      try { var p = await V.call('getPayments', { token: S.session.token }); if (p.error) throw new Error(p.error); S.bb = p; } catch (x) { $('#syncstate').textContent = friendly(x); return; }
+      var b = S.bb;
+      $('#syncstate').textContent = !b.set ? 'Not connected yet.' : b.okAt ? 'Connected. Last sent ' + whenTime(b.okAt) + '.' + (b.syncError ? ' Its last try (' + whenTime(b.triedAt) + ') couldn\'t read Blackbaud: ' + b.syncError + '.' : '') : 'Connected. Nothing sent yet.';
+      $('#stopsync').hidden = !b.set;
+    }
+    syncState();
+    $('#savesync').onclick = async function () {
+      var k = $('#synckey').value.trim().toLowerCase(), err = $('#syncerr'), ok = $('#syncok'); err.hidden = ok.hidden = true;
+      if (!/^[0-9a-f]{64}$/.test(k)) { err.textContent = 'That doesn\'t look like the sync key: it is 64 letters (a–f) and numbers.'; err.hidden = false; return; }
+      try { var r = await V.call('syncKey', { token: S.session.token, hash: await V._internal.sha256Hex(k) }); if (r.error) throw new Error(r.error); $('#synckey').value = ''; ok.hidden = false; syncState(); }
+      catch (x) { err.textContent = friendly(x); err.hidden = false; }
+    };
+    $('#stopsync').onclick = async function () {
+      if (!confirm('Disconnect the office Mac? It will stop sending Blackbaud payments until a new sync key is saved.')) return;
+      try { var r = await V.call('syncKey', { token: S.session.token, hash: null }); if (r.error) throw new Error(r.error); syncState(); }
+      catch (x) { var err = $('#syncerr'); err.textContent = friendly(x); err.hidden = false; }
+    };
+  }
+
+  /* ---------- Blackbaud payments sent by the office Mac (betterBB: bbreport booth-sync, every 30 minutes) ---------- */
+  // The Mac seals the payments with the festival's public key; they are opened here and added like the CSV import.
+  // Checked when the Desk loads and with "Check now". S.bb = what the mailbox has; S.bbResult = what the last check did.
+  function ago(iso) {
+    var m = Math.round((Date.now() - new Date(iso)) / 60000);
+    return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 60 * 24 ? Math.round(m / 60) + ' h ago' : whenTime(iso);
+  }
+  function bbRows(data) {     // only well-formed rows, whatever the file says
+    return (Array.isArray(data && data.rows) ? data.rows : []).filter(function (r) {
+      return r && typeof r.ref === 'string' && r.ref && Number.isInteger(r.amount) && r.amount > 0 && r.amount < 10000000;
+    }).map(function (r) {
+      var t = function (x, n) { return typeof x === 'string' ? x.slice(0, n) : ''; };
+      return { ref: t(r.ref, 60), amount: r.amount, date: /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : '', email: t(r.email, 200), name: t(r.name, 200),
+        method: t(r.method, 40), online: r.online !== false };
+    });
+  }
+  function bbPayment(r) {
+    return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), amount: r.amount, how: r.online ? 'Online (Blackbaud)' : 'Other',
+      date: r.date || today(), note: ((r.online ? '' : 'Entered in Raiser\'s Edge. ') + (r.method ? 'Paid by ' + r.method.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase() + '.' : '')).trim().slice(0, 200),
+      ref: r.ref, by: myName(), at: new Date().toISOString() };
+  }
+  async function checkBlackbaud(fresh) {
+    if (S.bbBusy) return;
+    S.bbBusy = true; drawBbLine();
+    var added = 0, err = null;
+    try {
+      if (fresh) { var r = await V.call('getPayments', { token: S.session.token }); if (r.error) throw new Error(r.error); S.bb = r; }
+      if (S.bb && S.bb.sealed) {
+        var data = await V.openApplication(S.session, S.bb.sealed), rows = bbRows(data), season = +data.season;
+        var apps = S.apps.filter(function (v) { return v.season === season; });
+        var have = {}; S.apps.forEach(function (v) { paymentsOf(v).forEach(function (p) { if (p.ref) have[p.ref] = 1; }); });
+        var groups = {}, unmatched = [];
+        rows.forEach(function (r) {
+          if (have[r.ref]) return;
+          have[r.ref] = 1;
+          var m = matchPayment(r, apps);
+          if (m) (groups[m.v.no] = groups[m.v.no] || { v: m.v, rows: [] }).rows.push(r); else unmatched.push(r);
+        });
+        var keys = Object.keys(groups);
+        for (var i = 0; i < keys.length; i++) {
+          var g = groups[keys[i]], n = 0;
+          await saveRecord(g.v, function (rec) { n = addPayments(g.v, rec, g.rows.map(bbPayment)); });
+          added += n;
+        }
+        S.bbResult = { at: new Date(), added: added, unmatched: unmatched, season: season, event: data.event || '' };
+      }
+    } catch (x) { err = x; }
+    S.bbBusy = false;
+    if (err) S.bbResult = Object.assign({}, S.bbResult || {}, { error: friendly(err) });
+    if (added && S.tab === 'vendors' && $('#bbline')) vendorsView(); else drawBbLine();
+  }
+  function bbLineHtml() {
+    var b = S.bb, res = S.bbResult;
+    if (!b || !b.set) return '';
+    var stale = !b.okAt || Date.now() - new Date(b.okAt) > 3 * 3600000, bits = [];
+    bits.push(b.okAt ? 'Online payments from Blackbaud: the office Mac last checked <b>' + esc(ago(b.okAt)) + '</b>' : 'Online payments from Blackbaud: the office Mac hasn\'t sent any yet');
+    if (b.syncError) bits.push('<span class="tm-err">it couldn\'t read Blackbaud ' + esc(ago(b.triedAt)) + ' (' + esc(b.syncError) + ')</span>');
+    else if (stale && b.okAt) bits.push('<span class="tm-err">that\'s a while ago: is the Mac asleep or off?</span>');
+    if (S.bbBusy) bits.push('checking…');
+    else if (res && res.error) bits.push('<span class="tm-err">' + esc(res.error) + '</span>');
+    else if (res) {
+      bits.push(res.added ? '<b>' + res.added + ' new payment' + (res.added === 1 ? '' : 's') + ' added</b>' : 'all recorded');
+      if (res.unmatched.length) bits.push('<button type="button" class="tm-link" id="bbun" aria-expanded="' + !!S.bbOpen + '">' + res.unmatched.length + ' not matched to a vendor</button>');
+    }
+    var list = res && res.unmatched && res.unmatched.length && S.bbOpen ? '<div class="tm-bbun"><p class="tm-muted">No ' + res.season + ' application has this email or name. Pick the vendor it belongs to:</p><ul class="tm-log tm-imp">' +
+      res.unmatched.map(function (r, i) {
+        return '<li><b>' + money(r.amount) + '</b> ' + esc(dayText(r.date)) + ' · ' + esc(r.name || '(no name)') + (r.email ? ' · ' + esc(r.email) : '') + ' <small>Blackbaud gift ' + esc(r.ref) + '</small>' +
+          '<div class="tm-row"><label class="tm-sr" for="bba' + i + '">Vendor</label><select id="bba' + i + '"><option value="">Choose a vendor…</option>' +
+          S.apps.filter(function (v) { return v.season === res.season; }).sort(function (a, c) { return titleOf(a).localeCompare(titleOf(c)); }).map(function (v) {
+            return '<option value="' + esc(v.no) + '">' + esc(titleOf(v)) + ' (' + esc(v.no) + ')</option>'; }).join('') +
+          '</select><button type="button" class="bf-btn" data-bba="' + i + '">Add to vendor</button></div></li>';
+      }).join('') + '</ul></div>' : '';
+    return '<p>' + bits.join(' · ') + ' <button type="button" class="tm-link" id="bbcheck"' + (S.bbBusy ? ' disabled' : '') + '>Check now</button></p>' + list;
+  }
+  function drawBbLine() { var el = $('#bbline'); if (el) { el.innerHTML = bbLineHtml(); wireBbLine(); } }
+  function wireBbLine() {
+    var c = $('#bbcheck'); if (c) c.onclick = function () { checkBlackbaud(true); };
+    var u = $('#bbun'); if (u) u.onclick = function () { S.bbOpen = !S.bbOpen; drawBbLine(); };
+    $all('[data-bba]').forEach(function (b) {
+      b.onclick = async function () {
+        var i = +b.getAttribute('data-bba'), r = S.bbResult.unmatched[i], v = find($('#bba' + i).value);
+        if (!v) return;
+        busy(b, 'Adding…');
+        try {
+          await saveRecord(v, function (rec) { addPayments(v, rec, [bbPayment(r)]); });
+          S.bbResult.unmatched.splice(i, 1);
+          vendorsView();
+        } catch (x) { unbusy(b); S.bbResult.error = friendly(x); drawBbLine(); }
+      };
+    });
   }
 
   /* ---------- import Blackbaud payments (CSV from betterBB: bbreport booth-payments) ---------- */
@@ -771,9 +906,9 @@
         '<p>' + rows.length + ' payments in this file: <strong>' + match.length + '</strong> to add' +
         (already.length ? ', ' + already.length + ' already recorded' : '') + (unmatched.length ? ', <strong>' + unmatched.length + '</strong> not matched' : '') + '.</p>' +
         (match.length ? '<ul class="tm-log tm-imp">' + match.map(function (m) {
-          var typed = paymentsOf(m.v).some(function (p) { return !p.ref && p.how === 'Online (Blackbaud)' && p.amount === m.r.amount; });
+          var typed = handTyped(paymentsOf(m.v), m.r);
           return '<li>' + line(m.r) + '<br>→ ' + esc(m.v.no) + ' ' + esc(titleOf(m.v)) + ' <small>matched by ' + m.by + '</small>' +
-            (typed ? '<br><span class="tm-err">This vendor already has a ' + money(m.r.amount) + ' online payment typed in by hand. If it\'s the same one, remove that one after importing.</span>' : '') + '</li>'; }).join('') + '</ul>' +
+            (typed ? '<br><span class="tm-muted">Will be linked to the ' + money(m.r.amount) + ' online payment already typed in by hand (not counted twice).</span>' : '') + '</li>'; }).join('') + '</ul>' +
           '<button class="bf-btn bf-btn-honey" id="dopay">Add ' + match.length + ' payment' + (match.length === 1 ? '' : 's') + '</button>' : '') +
         '<p class="tm-wait" id="payprog" hidden></p>' +
         (unmatched.length ? '<h3>Not matched</h3><p class="tm-muted">No ' + season + ' application with this email or name. Open the vendor in the Vendors tab and record these by hand (How: Online (Blackbaud)).</p>' +
@@ -793,6 +928,7 @@
             var n = 0;
             await saveRecord(g.v, function (rec) { n = addPayments(g.v, rec, list); });
             added += n;
+            S.bbResult = null;     // the automatic check's counts are out of date now
             prog.textContent = 'Added payments for ' + (i + 1) + ' of ' + keys.length + ' vendors…';
           }
           prog.textContent = 'Done. ' + added + ' payment' + (added === 1 ? '' : 's') + ' added. Vendors paid in full are now marked Paid; the rest show under "Owes a balance".';

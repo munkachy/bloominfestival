@@ -221,3 +221,12 @@
 .tm-settings code { overflow-wrap: anywhere; font-size: .9em; }
 #payinfo .tm-row { margin: 12px 0 4px; gap: 10px; align-items: center; }
 #payinfo .bf-btn { margin: 8px 0; }
+
+/* Vendors → Blackbaud payments line (sent by the office Mac) */
+.tm-bb:empty { display: none; }
+.tm-bb > p { font-size: .9rem; color: var(--bf-ink-soft); margin: 4px 0 10px; }
+.tm-bb > p b { color: var(--bf-ink); }
+.tm-bbun { margin-bottom: 14px; }
+.tm-bbun .tm-row { margin-top: 8px; gap: 8px; flex-wrap: wrap; }
+.tm-bbun select { max-width: 100%; min-width: 0; flex: 1 1 200px; }
+.tm-settings #synckey { flex: 1 1 260px; min-width: 0; font-family: ui-monospace, monospace; }

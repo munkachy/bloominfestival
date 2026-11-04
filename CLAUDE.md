@@ -12,7 +12,7 @@ matching section here in the same commit, so the next session can start from thi
 | `index.html`, `artisans/`, `become-a-sponsor/`, … | The public pages. Styles: `assets/bf.css` (colours, fonts, buttons) + `assets/site.css` (header, footer, dark mode) |
 | `become-an-exhibitor/` | Exhibitor info, rules (`#bf-rules`), and the **payment gate**: two Yes/No questions before the Blackbaud form appears (`assets/bf.js`) |
 | `become-an-exhibitor/apply/` | **The vendor application** (`assets/apply.js`, `apply.css`). Replaced the Google Form (Oct 2026) |
-| `team/` | **Festival team tools** behind the team password: Vendor Desk (`assets/team.js`, `team.css`) and the Map tab (`assets/team-map.js`). The Desk's Craft chips use `CRAFTS` (the form's categories); free-text crafts from the old sheet or "Something else" are sorted by the first craft word in them, else Other. **Payments** (amount due, each payment with how/date/note, balance) live in the sealed team record (`rec.due`, `rec.payments`, cents); the usual fee is `BOOTH_FEE`/`POWER_FEE` in `team.js` (update with the exhibitor page). Paying in full marks the vendor Paid; "Owes a balance" lists partial payers. **Settings → Import payments (CSV)** brings in the online booth payments (see "Blackbaud payments" below) |
+| `team/` | **Festival team tools** behind the team password: Vendor Desk (`assets/team.js`, `team.css`) and the Map tab (`assets/team-map.js`). The Desk's Craft chips use `CRAFTS` (the form's categories); free-text crafts from the old sheet or "Something else" are sorted by the first craft word in them, else Other. **Payments** (amount due, each payment with how/date/note, balance) live in the sealed team record (`rec.due`, `rec.payments`, cents); the usual fee is `BOOTH_FEE`/`POWER_FEE` in `team.js` (update with the exhibitor page). Paying in full marks the vendor Paid; "Owes a balance" lists partial payers. Online booth payments come in automatically from the office Mac (see "Blackbaud payments" below) |
 | `map/` | **Public festival map** (`assets/map-public.js`); `?booth=12` highlights a vendor's booth |
 | `assets/map.js`, `map.css` | The map engine shared by the team map, the public map, the poster and the picture |
 | `assets/map-start.json` | Last year's layout (57 booths square on the grid, stands, tents, stage, 15 building names), used once when the team starts the map |
@@ -41,17 +41,30 @@ matching section here in the same commit, so the next session can start from thi
 - The Blackbaud form on `become-an-exhibitor/` is an RE NXT **event registration** form. Payments land in Raiser's
   Edge as participants of the year's event ("43rd Bloomin' Festival - 2027", event ID 21; fees "Vendor" $275 and
   "Vendor Electricity Fee" $25), each fee payment pointing at a gift (origin "Online event registration").
-- This static site can't hold Blackbaud keys, so there is no live connection. On the office Mac, `~/betterBB`
-  (repo of the development office) has the SKY API sign-in: `cd ~/betterBB/reporting && python3 -m bbreport
-  booth-payments` (read-only; `--event <id or name>` for another year) writes
-  `betterBB/data/out/booth-payments-<event>.csv` (Blackbaud ID = RE gift ID, date, amount, email, name, method,
-  source). That file is real data: never copy it into this repo.
-- The Desk's import (`preparePayments` in `team.js`) matches each row to the chosen festival year's applications by
-  email, then by name (business or contact), and adds `{how: 'Online (Blackbaud)', ref: <gift ID>}` through
-  `saveRecord`/`addPayments`, which skip a `ref` already recorded, so re-importing adds nothing. Rows not entered
-  online show as "Other" with a note. Unmatched rows are listed for the team to record by hand. Payments the team
-  typed in by hand have no `ref`; the preview warns when a vendor already has a hand-typed "Online (Blackbaud)"
-  payment of the same amount (likely the same payment).
+- This static site can't hold Blackbaud keys, and the mailbox must never hold the Blackbaud sign-in or anything
+  readable. The SKY API sign-in lives only on the office Mac in `~/betterBB` (repo of the development office).
+- **Automatic (main path):** `python3 -m bbreport booth-sync` on the Mac (every 30 min by the launchd agent
+  `com.betterbb.boothsync`, file in `betterBB/config/launchd/`) reads the payments (read-only), seals them with the
+  festival's **public** key exactly like an application (`betterBB/reporting/bbreport/seal.py`, pure Python, checked
+  against `vault.js`), and sends them with `putPayments` and its own **sync key**. The mailbox keeps only the latest
+  sealed copy (`payments.json`), the key's SHA-256 (`SYNC_HASH`), and the times/reason of the last check
+  (`SYNC_OK_AT`, `SYNC_TRIED_AT`, `SYNC_ERROR`, e.g. "Blackbaud sign-in expired"). The Mac pins the festival public key
+  at setup and refuses to send if the mailbox ever shows a different one.
+- Setup, once: redeploy `Code.gs` (actions `syncKey`, `getPayments`, `putPayments`; `dump` also returns `payments`),
+  run `python3 -m bbreport booth-sync --setup` on the Mac (saves `data/bf_sync.json`, prints the key), paste the key in
+  the Desk's **Settings → Blackbaud payments from the office Mac**, then install the launchd agent. "Disconnect the
+  Mac" there clears the key.
+- **The Desk** (`checkBlackbaud` in `team.js`) opens the sealed payments when the Vendors tab loads and on
+  **Check now**, matches each to that festival year's applications by email, then by name (business or contact), and
+  adds new ones (`{how: 'Online (Blackbaud)', ref: <RE gift ID>}`) through `saveRecord`/`addPayments`. The line above
+  the Craft chips shows when the Mac last checked (red after 3 hours: asleep, off, or its Blackbaud sign-in expired),
+  how many were added, and the ones not matched, each with a vendor picker to add it by hand.
+- `addPayments` never records a `ref` twice, and links a Blackbaud payment to a hand-typed "Online (Blackbaud)"
+  payment of the same amount without a `ref` (it gets the `ref` and a note) instead of counting it twice. Payments not
+  made online (entered in RE by staff) come in as "Other" with a note.
+- **Fallback:** `python3 -m bbreport booth-payments` writes `betterBB/data/out/booth-payments-<event>.csv` for
+  **Settings → Import payments (CSV)** (`preparePayments`; same matching, with a preview). That file is real data:
+  never copy it into this repo.
 
 ## The map
 
@@ -80,8 +93,11 @@ matching section here in the same commit, so the next session can start from thi
 There is no test folder in the repo (tests use real vendor exports, which must never be committed). Test with
 Playwright against the real `mailbox/Code.gs` running on stand-in Google services (a small Node `vm` harness:
 DriveApp/PropertiesService/CacheService/LockService/Utilities/ContentService/MailApp in memory), routing the
-`script.google.com` URL to it and serving the repo for `http://localhost:8766`. For the payments import, make the
-fake CSV with betterBB's `booth_rows` (fake participants and gifts) so its columns match the real export. Check desktop (1440) and phone (390),
+`script.google.com` URL to it and serving the repo for `http://localhost:8766`. For the Blackbaud payments, make the
+fake rows with betterBB's `booth_rows` (fake participants and gifts) so they match the real export; to test the
+automatic path, run betterBB's real `booth.sync()` (with `SYNC_FILE` pointed at a scratch file and a fake `pull`)
+against the harness mailbox through a small local HTTP bridge (call Python asynchronously: a blocking call stalls the
+bridge). Check desktop (1440) and phone (390),
 light and dark, no console errors, no sideways scroll, no button text running off its button. Serve the repo for real
 (`python3 -m http.server 8766`): otherwise Chrome's favicon request shows up as a console error. The site has no
 favicon, so a favicon 404 is expected. Never run a test that submits to the **live** mailbox: it would

@@ -12,6 +12,10 @@
  *
  * Everything is kept in one Google Drive folder that this script creates: "Bloomin' Festival vault".
  * Please do not edit or move the files in it by hand.
+ *
+ * Actions: hello, publicmap, submit (public form); init, recoveryKeyring, recover (setup and recovery);
+ * login, dump, photo, put, putMap, publish, removeApp, importMany, settings, rekey, syncKey, getPayments (team);
+ * putPayments (the office Mac, with its sync key).
  */
 
 const FOLDER_NAME = "Bloomin' Festival vault (locked data, do not edit)";
@@ -55,6 +59,9 @@ function handle_(q, e) {
       case 'importMany': return out_(teamOnly_(q, function () { return importMany_(q); }));
       case 'settings': return out_(teamOnly_(q, function () { return settings_(q); }));
       case 'rekey': return out_(teamOnly_(q, function () { return rekey_(q); }));
+      case 'syncKey': return out_(teamOnly_(q, function () { return syncKey_(q); }));
+      case 'getPayments': return out_(teamOnly_(q, function () { return Object.assign({ ok: true }, payments_()); }));
+      case 'putPayments': return out_(putPayments_(q));
       default: return out_({ ok: true, service: "Bloomin' Festival mailbox", ready: !!readJson_('keyring.json', null) });
     }
   } catch (err) {
@@ -183,7 +190,8 @@ function dump_() {
     applications: readJson_('applications.json', []),
     records: readJson_('records.json', {}),
     map: readJson_('map.json', null),
-    publicMap: readJson_('public-map.json', null)
+    publicMap: readJson_('public-map.json', null),
+    payments: payments_()
   };
 }
 
@@ -326,6 +334,48 @@ function rekey_(q) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ---------- Blackbaud payments from the office Mac ---------- */
+// The office Mac (betterBB, `bbreport booth-sync`) reads the booth payments from Raiser's Edge, seals them with the
+// festival's PUBLIC key (like a vendor's application, so only the team can open them) and sends them here with its
+// own sync key. The script keeps the latest sealed copy and when the Mac last checked. Nothing readable.
+
+// The team sets (or clears, hash: null) the fingerprint of the Mac's sync key.
+function syncKey_(q) {
+  var props = PropertiesService.getScriptProperties();
+  if (q.hash === null) { props.deleteProperty('SYNC_HASH'); return { ok: true, set: false }; }
+  if (!/^[0-9a-f]{64}$/.test(String(q.hash || ''))) return { error: 'bad-key' };
+  props.setProperty('SYNC_HASH', q.hash);
+  return { ok: true, set: true };
+}
+
+// { sync, payments: {epk, iv, ct} } after a good check, or { sync, error: 'short reason' } when the Mac couldn't read Blackbaud.
+function putPayments_(q) {
+  var cache = CacheService.getScriptCache();
+  var fails = Number(cache.get('syncfails') || 0);
+  if (fails >= FAILS_ALLOWED) return { error: 'paused' };
+  var props = PropertiesService.getScriptProperties();
+  var want = props.getProperty('SYNC_HASH');
+  if (!want || sha256Hex_(String(q.sync || '')) !== want) {
+    cache.put('syncfails', String(fails + 1), 900);
+    return { error: 'wrong-sync-key' };
+  }
+  var now = new Date().toISOString();
+  props.setProperty('SYNC_TRIED_AT', now);
+  if (q.error) { props.setProperty('SYNC_ERROR', String(q.error).slice(0, 200)); return { ok: true }; }
+  if (!sealedOk_(q.payments, 500000) || typeof q.payments.epk !== 'string') return { error: 'bad-payments' };
+  writeJson_('payments.json', { at: now, ct: { epk: q.payments.epk, iv: q.payments.iv, ct: q.payments.ct } });
+  props.setProperty('SYNC_OK_AT', now);
+  props.deleteProperty('SYNC_ERROR');
+  return { ok: true };
+}
+
+function payments_() {
+  var props = PropertiesService.getScriptProperties();
+  var p = readJson_('payments.json', null);
+  return { set: !!props.getProperty('SYNC_HASH'), sealed: p ? p.ct : null, okAt: props.getProperty('SYNC_OK_AT'),
+    triedAt: props.getProperty('SYNC_TRIED_AT'), syncError: props.getProperty('SYNC_ERROR') };
 }
 
 /* ---------- storage helpers ---------- */
