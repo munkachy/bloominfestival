@@ -12,7 +12,7 @@ matching section here in the same commit, so the next session can start from thi
 | `index.html`, `artisans/`, `become-a-sponsor/`, … | The public pages. Styles: `assets/bf.css` (colours, fonts, buttons) + `assets/site.css` (header, footer, dark mode) |
 | `become-an-exhibitor/` | Exhibitor info, rules (`#bf-rules`), and the **payment gate**: two Yes/No questions before the Blackbaud form appears (`assets/bf.js`) |
 | `become-an-exhibitor/apply/` | **The vendor application** (`assets/apply.js`, `apply.css`). Replaced the Google Form (Oct 2026) |
-| `team/` | **Festival team tools** behind the team password: Vendor Desk (`assets/team.js`, `team.css`) and the Map tab (`assets/team-map.js`). The Desk's Craft chips use `CRAFTS` (the form's categories); free-text crafts from the old sheet or "Something else" are sorted by the first craft word in them, else Other |
+| `team/` | **Festival team tools** behind the team password: Vendor Desk (`assets/team.js`, `team.css`) and the Map tab (`assets/team-map.js`). The Desk's Craft chips use `CRAFTS` (the form's categories); free-text crafts from the old sheet or "Something else" are sorted by the first craft word in them, else Other. **Payments** (Nov 2026): each vendor's record (`rec.payments`, sealed with the team key like notes) holds deposits, payments and refunds; amount due is `FEES` in `team.js` (booth × spaces + power) unless the team changed it (`rec.due`). Recording a payment moves the status between Accepted, **Deposit paid** (balance due) and Paid |
 | `map/` | **Public festival map** (`assets/map-public.js`); `?booth=12` highlights a vendor's booth |
 | `assets/map.js`, `map.css` | The map engine shared by the team map, the public map, the poster and the picture |
 | `assets/map-start.json` | Last year's layout (57 booths square on the grid, stands, tents, stage, 15 building names), used once when the team starts the map |
@@ -34,7 +34,8 @@ matching section here in the same commit, so the next session can start from thi
   `hello` → `{ready}`; actions are listed at the top of `handle_`.
 - The team password was created by the user on 30 Oct 2026. Notification addresses are set in the Desk's Settings tab.
 - The festival year rolls over automatically each May (`SEASON` in `vault.js`). Each year, update the dates, fees and
-  deadline written in the pages (exhibitor page, the form's header, `map/`, the poster subtitle in `team-map.js`).
+  deadline written in the pages (exhibitor page, the form's header, `map/`, the poster subtitle in `team-map.js`,
+  and `FEES` in `team.js`).
 
 ## The map
 

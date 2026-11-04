@@ -4,23 +4,26 @@
 /* Status colors: --st is the color itself, --st-bg / --st-ink the soft pill, --st-on the text on a solid --st. */
 .st-new { --st: #64748b; --st-bg: #eef2f6; --st-ink: #475569; --st-on: #fff; }
 .st-accepted { --st: #b45309; --st-bg: #fef3c7; --st-ink: #92400e; --st-on: #fff; }
+.st-deposit { --st: #0e7490; --st-bg: #cffafe; --st-ink: #155e75; --st-on: #fff; }
 .st-paid { --st: #15803d; --st-bg: #dcfce7; --st-ink: #166534; --st-on: #fff; }
 .st-waitlist { --st: #1d4ed8; --st-bg: #dbeafe; --st-ink: #1e40af; --st-on: #fff; }
 .st-rejected { --st: #b91c1c; --st-bg: #fee2e2; --st-ink: #991b1b; --st-on: #fff; }
 .st-withdrew { --st: #64748b; --st-bg: #f1f5f9; --st-ink: #475569; --st-on: #fff; }
-:root { --tm-err: #b91c1c; --tm-shade: rgba(16, 24, 22, .45); }
+:root { --st-deposit: #0e7490; --tm-err: #b91c1c; --tm-shade: rgba(16, 24, 22, .45); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --tm-err: #fca5a5; --tm-shade: rgba(0, 0, 0, .6); }
+  :root:not([data-theme="light"]) { --st-deposit: #22d3ee; --tm-err: #fca5a5; --tm-shade: rgba(0, 0, 0, .6); }
   :root:not([data-theme="light"]) .st-new { --st: #94a3b8; --st-bg: #26303b; --st-ink: #cbd5e1; --st-on: #121816; }
   :root:not([data-theme="light"]) .st-accepted { --st: #f2b84b; --st-bg: #3b2c0e; --st-ink: #fcd34d; --st-on: #121816; }
+  :root:not([data-theme="light"]) .st-deposit { --st: #22d3ee; --st-bg: #0d2f36; --st-ink: #a5f3fc; --st-on: #121816; }
   :root:not([data-theme="light"]) .st-paid { --st: #4ade80; --st-bg: #133222; --st-ink: #86efac; --st-on: #121816; }
   :root:not([data-theme="light"]) .st-waitlist { --st: #7fb0f8; --st-bg: #172b4d; --st-ink: #bfdbfe; --st-on: #121816; }
   :root:not([data-theme="light"]) .st-rejected { --st: #f87171; --st-bg: #3d1818; --st-ink: #fca5a5; --st-on: #121816; }
   :root:not([data-theme="light"]) .st-withdrew { --st: #7c8a9c; --st-bg: #222a33; --st-ink: #a5b1c0; --st-on: #121816; }
 }
-:root[data-theme="dark"] { --tm-err: #fca5a5; --tm-shade: rgba(0, 0, 0, .6); }
+:root[data-theme="dark"] { --st-deposit: #22d3ee; --tm-err: #fca5a5; --tm-shade: rgba(0, 0, 0, .6); }
 :root[data-theme="dark"] .st-new { --st: #94a3b8; --st-bg: #26303b; --st-ink: #cbd5e1; --st-on: #121816; }
 :root[data-theme="dark"] .st-accepted { --st: #f2b84b; --st-bg: #3b2c0e; --st-ink: #fcd34d; --st-on: #121816; }
+:root[data-theme="dark"] .st-deposit { --st: #22d3ee; --st-bg: #0d2f36; --st-ink: #a5f3fc; --st-on: #121816; }
 :root[data-theme="dark"] .st-paid { --st: #4ade80; --st-bg: #133222; --st-ink: #86efac; --st-on: #121816; }
 :root[data-theme="dark"] .st-waitlist { --st: #7fb0f8; --st-bg: #172b4d; --st-ink: #bfdbfe; --st-on: #121816; }
 :root[data-theme="dark"] .st-rejected { --st: #f87171; --st-bg: #3d1818; --st-ink: #fca5a5; --st-on: #121816; }
@@ -147,6 +150,25 @@
 .tm-log p { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 2px; }
 .tm-hist li { background: none; border: 0; border-bottom: 1px solid var(--bf-rule); border-radius: 0; padding: 6px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .tm-hist time { margin: 0; }
+/* payments */
+.tm-bdg-due { border-color: var(--st-deposit, #0e7490); color: var(--st-deposit, #0e7490); }
+.tm-paytotal { font-weight: 600; margin: 4px 0 10px; }
+.tm-paysum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.tm-paysum > div { background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 12px; padding: 10px 14px; display: grid; gap: 2px; }
+.tm-paysum span { font: 600 .72rem/1.4 var(--bf-label); letter-spacing: .1em; text-transform: uppercase; color: var(--bf-ink-soft); }
+.tm-paysum b { font-size: 1.25rem; }
+.tm-paysum .tm-owe { border-color: var(--st-deposit, #0e7490); }
+.tm-paysum .tm-owe b { color: var(--st-deposit, #0e7490); }
+.tm-pays li { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.tm-pays li > div { min-width: 0; }
+.tm-pays small { display: block; color: var(--bf-ink-soft); font-size: .82rem; }
+.tm-pays .tm-link { flex: none; padding: 4px 2px; }
+.tm-payform { display: grid; gap: 10px; justify-items: start; margin: 4px 0 8px; }
+.tm-payform > label, .tm-payrow label { display: grid; gap: 4px; font-weight: 600; font-size: .9rem; width: 100%; }
+.tm-payrow { display: grid; grid-template-columns: auto 1fr 1fr; gap: 10px; width: 100%; }
+.tm-payrow select { width: 100%; }
+.tm-due summary { cursor: pointer; color: var(--bf-teal); font-weight: 600; padding: 8px 0; }
+.tm-due p { margin: 0 0 8px; font-size: .92rem; }
 .tm-old { color: var(--bf-ink-soft); font-style: italic; font-size: .92rem; }
 .tm-danger { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--bf-rule); }
 .tm-danger summary { cursor: pointer; color: var(--bf-ink-soft); font-weight: 600; padding: 8px 0; }
@@ -171,6 +193,10 @@
   .tm-panel-in { padding: 0 16px 48px; }
   .tm-dl { grid-template-columns: 1fr; gap: 0; }
   .tm-dl dd { margin-bottom: 10px; }
+  .tm-payrow { grid-template-columns: 1fr 1fr; }
+  .tm-payrow label:last-child { grid-column: 1 / -1; }
+  .tm-paysum b { font-size: 1.05rem; }
+  .tm-paysum > div { padding: 8px 10px; }
   .tm-chip { min-height: 40px; padding: 0 11px; gap: 6px; font-size: .72rem; letter-spacing: .04em; }
   /* the crafts ride in one row that scrolls sideways, so they don't push the list off the first screen */
   .tm-crafts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }

@@ -23,7 +23,7 @@
   var PAL = { orange: '#fdb666', rust: '#a25903', cream: '#ffeda3', yellow: '#fecf33', gold: '#d8b95c', blue: '#4d81a7', navy: '#004069',
     red: '#7a0000', road: '#545454', dark: '#343434', white: '#ffffff', sage: '#6e8d53', leaf: '#68a92b' };
   var SWATCHES = [PAL.orange, PAL.rust, PAL.cream, PAL.yellow, PAL.gold, PAL.blue, PAL.navy, PAL.red, PAL.sage, PAL.leaf, PAL.road, PAL.white];
-  var STATUS_DOT = { new: '#64748b', accepted: '#f59e0b', paid: '#16a34a', waitlist: '#2563eb', rejected: '#dc2626', withdrew: '#94a3b8' };
+  var STATUS_DOT = { new: '#64748b', accepted: '#f59e0b', deposit: '#0891b2', paid: '#16a34a', waitlist: '#2563eb', rejected: '#dc2626', withdrew: '#94a3b8' };
 
   /* ---------- icons (24 x 24, drawn for this map) ---------- */
   var S = ' fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
