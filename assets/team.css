@@ -91,6 +91,29 @@
 .tm-chip[aria-pressed="true"] { background: var(--bf-ink); border-color: var(--bf-ink); color: var(--bf-paper); }
 .tm-chip[aria-pressed="true"] b { color: var(--bf-paper); }
 .tm-chip[aria-pressed="true"] i { box-shadow: 0 0 0 2px var(--bf-paper); }
+.tm-chip-owe { border-style: dashed; border-color: var(--tm-err); }
+.tm-money { color: var(--bf-ink-soft); }
+.tm-money b { color: var(--bf-ink); font-variant-numeric: tabular-nums; }
+.tm-bdg-owe { color: var(--tm-err); border-color: var(--tm-err); }
+.tm-pay { display: grid; gap: 12px; }
+.tm-paysum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tm-paysum span { display: grid; gap: 2px; padding: 10px 14px; background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 12px; }
+.tm-paysum small { font: 600 .7rem/1.4 var(--bf-label); letter-spacing: .1em; text-transform: uppercase; color: var(--bf-ink-soft); }
+.tm-paysum b { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.tm-paysum .tm-owe { border-color: var(--tm-err); }
+.tm-paysum .tm-owe b { color: var(--tm-err); }
+.tm-paysum .tm-even b { color: var(--bf-teal); }
+.tm-paynote { margin: 0; font-size: .92rem; }
+.tm-paylist li { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.tm-paylist li > span { min-width: 0; }
+.tm-paylist b { font-variant-numeric: tabular-nums; }
+.tm-paylist small { display: block; color: var(--bf-ink-soft); font-size: .8rem; }
+.tm-payform { display: grid; gap: 10px; padding: 14px; background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 14px; justify-items: start; }
+.tm-payform label { display: grid; gap: 4px; width: 100%; }
+.tm-payform label span { font: 600 .72rem/1.4 var(--bf-label); letter-spacing: .1em; text-transform: uppercase; color: var(--bf-ink-soft); }
+.tm-payfields { display: grid; grid-template-columns: 8rem minmax(0, 1fr) 10rem; gap: 10px; width: 100%; }
+.tm-payform select, .tm-payfields input { width: 100%; min-width: 0; }
+.tm-pay .tm-row[hidden] { display: none; }
 .tm-crafts { align-items: center; gap: 6px; }
 .tm-crafts-l { font: 600 .74rem/1 var(--bf-label); letter-spacing: .1em; text-transform: uppercase; color: var(--bf-ink-soft); margin-right: 4px; }
 .tm-crafts .tm-chip { min-height: 36px; padding: 0 13px; font: 600 .88rem/1 var(--bf-body); letter-spacing: 0; text-transform: none; }
@@ -175,6 +198,9 @@
   /* the crafts ride in one row that scrolls sideways, so they don't push the list off the first screen */
   .tm-crafts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
   .tm-crafts .tm-chip { flex: none; min-height: 36px; font-size: .85rem; }
+  .tm-payfields { grid-template-columns: 1fr 1fr; }
+  .tm-payfields label:nth-child(2) { grid-column: 1 / -1; order: 3; }
+  .tm-paysum b { font-size: 1.1rem; }
 }
 
 /* ---------- printing ---------- */
