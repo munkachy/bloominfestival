@@ -512,7 +512,7 @@
       '<button class="bf-btn" type="submit">Save amount due</button></form>' +
       (list.length ? '<ul class="tm-log tm-paylist">' + list.map(function (p) {
         return '<li><span><b>' + money(p.amount) + '</b> ' + esc(p.how) + ' <time>' + esc(dayText(p.date)) + '</time>' + (p.note ? '<p>' + esc(p.note) + '</p>' : '') +
-          '<small>Recorded by ' + esc(p.by) + '</small></span><button type="button" class="tm-link" data-unpay="' + esc(p.id) + '">Remove</button></li>';
+          '<small>' + (p.ref ? 'Blackbaud gift ' + esc(p.ref) + ' · imported by ' : 'Recorded by ') + esc(p.by) + '</small></span><button type="button" class="tm-link" data-unpay="' + esc(p.id) + '">Remove</button></li>';
       }).join('') + '</ul>' : '<p class="tm-muted">No payments recorded yet.</p>') +
       '<form id="payform" class="tm-payform"><div class="tm-payfields">' +
       '<label><span>Amount</span><input id="payamt" inputmode="decimal" placeholder="' + esc((Math.max(bal, 0) / 100).toFixed(2)) + '" required></label>' +
@@ -520,6 +520,19 @@
       '<label><span>Date</span><input id="paydate" type="date" value="' + today() + '" required></label></div>' +
       '<label><span>Note (optional)</span><input id="paynote" maxlength="200" placeholder="Receipt number, who took it…"></label>' +
       '<button class="bf-btn bf-btn-honey" type="submit">Record payment</button></form></div>';
+  }
+  // Adds payments to a team record (skipping Blackbaud refs it already has); paid in full marks them Paid.
+  function addPayments(v, rec, list) {
+    var refs = {}; (rec.payments || []).forEach(function (x) { if (x.ref) refs[x.ref] = 1; });
+    var add = list.filter(function (p) { if (p.ref && refs[p.ref]) return false; if (p.ref) refs[p.ref] = 1; return true; });
+    if (!add.length) return 0;
+    rec.payments = (rec.payments || []).concat(add);
+    var st = STATUS[rec.status] ? rec.status : statusOf(v);
+    var paid = rec.payments.reduce(function (s, x) { return s + x.amount; }, 0), due = typeof rec.due === 'number' ? rec.due : usualFee(v);
+    if (paid >= due && st !== 'paid' && st !== 'withdrew') {     // paid in full: mark them Paid
+      rec.history.push({ at: add[0].at, by: add[0].by, from: st, to: 'paid' }); rec.status = 'paid';
+    }
+    return add.length;
   }
   function wirePayments(v) {
     $('#duebtn').onclick = function () { $('#dueform').hidden = !$('#dueform').hidden; if (!$('#dueform').hidden) $('#due').focus(); };
@@ -536,14 +549,7 @@
         note: $('#paynote').value.trim().slice(0, 200), by: myName(), at: new Date().toISOString() };
       busy(btn, 'Saving…');
       try {
-        await saveRecord(v, function (rec) {
-          rec.payments = (rec.payments || []).concat(p);
-          var st = STATUS[rec.status] ? rec.status : statusOf(v);
-          var paid = rec.payments.reduce(function (s, x) { return s + x.amount; }, 0), due = typeof rec.due === 'number' ? rec.due : usualFee(v);
-          if (paid >= due && st !== 'paid' && st !== 'withdrew') {     // paid in full: mark them Paid
-            rec.history.push({ at: p.at, by: p.by, from: st, to: 'paid' }); rec.status = 'paid';
-          }
-        });
+        await saveRecord(v, function (rec) { addPayments(v, rec, [p]); });
         vendorsView();
       } catch (x) { unbusy(btn); showPanelError(x); }
     };
@@ -669,6 +675,13 @@
       '<input type="file" id="csvfile" accept=".csv,text/csv">' +
       '<div id="importinfo"></div></section>' +
 
+      '<section class="tm-card"><p class="bf-label">Bring over</p><h2>Import payments (CSV)</h2>' +
+      '<p>Booth fees paid online on the Blackbaud form. On the office Mac, in the betterBB folder\'s <strong>reporting</strong> folder, run ' +
+      '<code>python3 -m bbreport booth-payments</code>, then pick the file it saves (in <strong>betterBB/data/out</strong>) here. ' +
+      'Each payment is matched to an application by email, then by name, and locked in this browser. Payments already recorded are skipped, so it\'s safe to import again.</p>' +
+      '<input type="file" id="payfile" accept=".csv,text/csv">' +
+      '<div id="payinfo"></div></section>' +
+
       '<section class="tm-card"><p class="bf-label">Security</p><h2>Change the team password</h2>' +
       '<p>Everyone on the team will need the new password. The printed recovery code keeps working.</p>' +
       '<form id="chpw">' + pwField('np1', 'New team password (at least 10 characters)', 'new-password') + pwField('np2', 'Type it again', 'new-password') +
@@ -698,6 +711,96 @@
     };
     $('#savename').onclick = function () { store('bf-team-name', $('#myname').value.trim().slice(0, 30) || 'Team'); whoEl.querySelector('span').textContent = myName(); };
     $('#csvfile').onchange = function () { if (this.files[0]) prepareImport(this.files[0]); };
+    $('#payfile').onchange = function () { if (this.files[0]) preparePayments(this.files[0]); };
+  }
+
+  /* ---------- import Blackbaud payments (CSV from betterBB: bbreport booth-payments) ---------- */
+  function rowsToPayments(rows) {
+    var head = rows[0].map(function (h) { return h.trim().toLowerCase(); });
+    function col(re) { for (var i = 0; i < head.length; i++) if (re.test(head[i])) return i; return -1; }
+    var c = { ref: col(/^blackbaud id$|gift id/), amount: col(/^amount/), date: col(/^date/), email: col(/e-?mail/), name: col(/^name$/),
+      first: col(/^first/), last: col(/^last/), method: col(/payment method/), source: col(/^source/) };
+    if (c.ref < 0 || c.amount < 0 || (c.email < 0 && c.name < 0)) throw new Error("This doesn't look like the payments file from betterBB (no Blackbaud ID, Amount and Email columns).");
+    var out = [];
+    rows.slice(1).forEach(function (r) {
+      var get = function (i) { return i >= 0 && r[i] != null ? String(r[i]).trim() : ''; };
+      var amount = cents(get(c.amount)), ref = get(c.ref).slice(0, 60);
+      if (!ref || !amount) return;
+      var name = get(c.name) || (get(c.first) + ' ' + get(c.last)).trim(), date = get(c.date).slice(0, 10);
+      out.push({ ref: ref, amount: amount, date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '', email: get(c.email), name: name,
+        method: get(c.method), online: !/entered/i.test(get(c.source)) });
+    });
+    return out;
+  }
+  function nameKey(s) { return key(s).replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim(); }
+  function matchPayment(row, apps) {
+    var live = function (v) { return statusOf(v) !== 'withdrew' && statusOf(v) !== 'rejected'; };
+    function pick(list) { var l = list.filter(live); l = l.length ? l : list; return l.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); })[0]; }
+    var e = key(row.email), n = nameKey(row.name);
+    var byEmail = e ? apps.filter(function (v) { return key(v.d.email) === e; }) : [];
+    if (byEmail.length) return { v: pick(byEmail), by: 'email' };
+    var byName = n ? apps.filter(function (v) { return nameKey(v.d.name) === n || nameKey(v.d.business) === n; }) : [];
+    if (byName.length) return { v: pick(byName), by: 'name' };
+    return null;
+  }
+  async function preparePayments(file) {
+    var box = $('#payinfo');
+    box.innerHTML = '<p class="tm-wait">Reading the file…</p>';
+    var rows;
+    try {
+      rows = rowsToPayments(parseCsv((await file.text()).replace(/^﻿/, '')));
+      await fetchApps();     // the latest records, so payments imported before (from any computer) are skipped
+    } catch (x) { box.innerHTML = '<p class="tm-err">' + esc(friendly(x)) + '</p>'; return; }
+    if (!rows.length) { box.innerHTML = '<p class="tm-err">No payments in this file.</p>'; return; }
+    var seasons = {}; S.apps.forEach(function (v) { seasons[v.season] = 1; });
+    var season = seasons[S.season] ? S.season : +Object.keys(seasons).sort().reverse()[0] || S.season;
+    function draw() {
+      var apps = S.apps.filter(function (v) { return v.season === season; });
+      var have = {}; apps.forEach(function (v) { paymentsOf(v).forEach(function (p) { if (p.ref) have[p.ref] = v; }); });
+      var already = [], match = [], unmatched = [], seen = {};
+      rows.forEach(function (r) {
+        if (have[r.ref] || seen[r.ref]) { already.push(r); return; }
+        seen[r.ref] = 1;
+        var m = matchPayment(r, apps);
+        if (m) match.push({ r: r, v: m.v, by: m.by }); else unmatched.push(r);
+      });
+      var groups = {}; match.forEach(function (m) { (groups[m.v.no] = groups[m.v.no] || { v: m.v, rows: [] }).rows.push(m.r); });
+      function line(r) { return '<b>' + money(r.amount) + '</b> ' + esc(dayText(r.date)) + ' · ' + esc(r.name || '(no name)') + (r.email ? ' · ' + esc(r.email) : '') + ' <small>Blackbaud gift ' + esc(r.ref) + '</small>'; }
+      box.innerHTML = '<label class="tm-row"><span>Festival year</span><select id="payseason">' + Object.keys(seasons).sort().reverse().map(function (y) {
+          return '<option value="' + y + '"' + (+y === season ? ' selected' : '') + '>' + y + '</option>'; }).join('') + '</select></label>' +
+        '<p>' + rows.length + ' payments in this file: <strong>' + match.length + '</strong> to add' +
+        (already.length ? ', ' + already.length + ' already recorded' : '') + (unmatched.length ? ', <strong>' + unmatched.length + '</strong> not matched' : '') + '.</p>' +
+        (match.length ? '<ul class="tm-log tm-imp">' + match.map(function (m) {
+          var typed = paymentsOf(m.v).some(function (p) { return !p.ref && p.how === 'Online (Blackbaud)' && p.amount === m.r.amount; });
+          return '<li>' + line(m.r) + '<br>→ ' + esc(m.v.no) + ' ' + esc(titleOf(m.v)) + ' <small>matched by ' + m.by + '</small>' +
+            (typed ? '<br><span class="tm-err">This vendor already has a ' + money(m.r.amount) + ' online payment typed in by hand. If it\'s the same one, remove that one after importing.</span>' : '') + '</li>'; }).join('') + '</ul>' +
+          '<button class="bf-btn bf-btn-honey" id="dopay">Add ' + match.length + ' payment' + (match.length === 1 ? '' : 's') + '</button>' : '') +
+        '<p class="tm-wait" id="payprog" hidden></p>' +
+        (unmatched.length ? '<h3>Not matched</h3><p class="tm-muted">No ' + season + ' application with this email or name. Open the vendor in the Vendors tab and record these by hand (How: Online (Blackbaud)).</p>' +
+          '<ul class="tm-log tm-imp" id="unmatched">' + unmatched.map(function (r) { return '<li>' + line(r) + '</li>'; }).join('') + '</ul>' : '');
+      $('#payseason').onchange = function () { season = +this.value; draw(); };
+      var go = $('#dopay'); if (!go) return;
+      go.onclick = async function () {
+        var btn = this, prog = $('#payprog'), keys = Object.keys(groups), added = 0; busy(btn, 'Adding…'); prog.hidden = false;
+        try {
+          for (var i = 0; i < keys.length; i++) {
+            var g = groups[keys[i]], at = new Date().toISOString();
+            var list = g.rows.map(function (r) {
+              return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), amount: r.amount, how: r.online ? 'Online (Blackbaud)' : 'Other',
+                date: r.date || today(), note: ((r.online ? '' : 'Entered in Raiser\'s Edge. ') + (r.method ? 'Paid by ' + r.method.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase() + '.' : '')).trim().slice(0, 200),
+                ref: r.ref, by: myName(), at: at };
+            });
+            var n = 0;
+            await saveRecord(g.v, function (rec) { n = addPayments(g.v, rec, list); });
+            added += n;
+            prog.textContent = 'Added payments for ' + (i + 1) + ' of ' + keys.length + ' vendors…';
+          }
+          prog.textContent = 'Done. ' + added + ' payment' + (added === 1 ? '' : 's') + ' added. Vendors paid in full are now marked Paid; the rest show under "Owes a balance".';
+          unbusy(btn); btn.hidden = true;
+        } catch (x) { unbusy(btn); prog.textContent = 'Stopped: ' + friendly(x) + '. You can import the file again; payments already added are skipped.'; }
+      };
+    }
+    draw();
   }
 
   /* ---------- import from the old Google Form sheet ---------- */
