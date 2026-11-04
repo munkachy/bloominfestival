@@ -402,6 +402,7 @@
       if (d.electricity === 'yes') badges.push('<span class="tm-bdg" title="Needs electricity">⚡ Power</span>');
       if (v.returning) badges.push('<span class="tm-bdg" title="Has applied in an earlier year">↺ Returning</span>');
       if (v.legacy) badges.push('<span class="tm-bdg tm-bdg-old" title="Brought over from the Google sheet">Google sheet</span>');
+      if (v.rec && v.rec.mail) badges.push('<span class="tm-bdg" title="Paper application, paying by mail (on the Blackbaud event)">✉ By mail</span>');
       if (owes(v)) badges.push('<span class="tm-bdg tm-bdg-owe" title="Paid ' + money(paidOf(v)) + ' of ' + money(dueOf(v)) + '">Owes ' + money(balanceOf(v)) + '</span>');
       var bo = window.BFTeamMap && BFTeamMap.boothFor(v.no);
       if (bo) badges.push('<span class="tm-bdg tm-bdg-booth" title="Their booth on the festival map">Booth ' + esc(bo.n) + (bo.double && bo.n2 && !bo.one ? '–' + esc(bo.n2) : '') + '</span>');
@@ -494,7 +495,7 @@
   /* ---------- payments (amounts in cents, kept in the team record) ---------- */
   // The usual fee from the exhibitor page: $275 a booth space, $25 for electricity. The team can change it per vendor.
   var BOOTH_FEE = 27500, POWER_FEE = 2500;
-  var PAY_HOW = ['In person at Bernard Blues', 'Online (Blackbaud)', 'Check', 'Cash', 'Card in person', 'Other'];
+  var PAY_HOW = ['In person at Bernard Blues', 'Online (Blackbaud)', 'Mail (paper application)', 'Check', 'Cash', 'Card in person', 'Other'];
   function usualFee(v) { return BOOTH_FEE * (v.d.booths === 2 ? 2 : 1) + (v.d.electricity === 'yes' ? POWER_FEE : 0); }
   function paymentsOf(v) { return (v.rec && v.rec.payments) || []; }
   function dueOf(v) { var r = v.rec; return r && typeof r.due === 'number' ? r.due : usualFee(v); }
@@ -514,13 +515,15 @@
       ' <button type="button" class="tm-link" id="duebtn">Change</button></p>' +
       '<form id="dueform" class="tm-row" hidden><label class="tm-sr" for="due">Amount due</label><input id="due" inputmode="decimal" value="' + esc((due / 100).toFixed(2)) + '">' +
       '<button class="bf-btn" type="submit">Save amount due</button></form>' +
+      (v.rec && v.rec.mail ? '<p class="tm-mailnote">✉ <b>Paper application, paying by mail.</b> On the Blackbaud event since ' + esc(dayText(v.rec.mail.date) || 'earlier') +
+        (v.rec.mail.fees ? ' (' + esc(v.rec.mail.fees) + ')' : '') + '. Blackbaud has no amount for it: record the check below when it comes in.</p>' : '') +
       (list.length ? '<ul class="tm-log tm-paylist">' + list.map(function (p) {
         return '<li><span><b>' + money(p.amount) + '</b> ' + esc(p.how) + ' <time>' + esc(dayText(p.date)) + '</time>' + (p.note ? '<p>' + esc(p.note) + '</p>' : '') +
           '<small>' + (p.ref ? 'Blackbaud gift ' + esc(p.ref) + ' · imported by ' : 'Recorded by ') + esc(p.by) + '</small></span><button type="button" class="tm-link" data-unpay="' + esc(p.id) + '">Remove</button></li>';
       }).join('') + '</ul>' : '<p class="tm-muted">No payments recorded yet.</p>') +
       '<form id="payform" class="tm-payform"><div class="tm-payfields">' +
       '<label><span>Amount</span><input id="payamt" inputmode="decimal" placeholder="' + esc((Math.max(bal, 0) / 100).toFixed(2)) + '" required></label>' +
-      '<label><span>How</span><select id="payhow">' + PAY_HOW.map(function (h) { return '<option>' + esc(h) + '</option>'; }).join('') + '</select></label>' +
+      '<label><span>How</span><select id="payhow">' + PAY_HOW.map(function (h) { return '<option' + (v.rec && v.rec.mail && h === 'Mail (paper application)' ? ' selected' : '') + '>' + esc(h) + '</option>'; }).join('') + '</select></label>' +
       '<label><span>Date</span><input id="paydate" type="date" value="' + today() + '" required></label></div>' +
       '<label><span>Note (optional)</span><input id="paynote" maxlength="200" placeholder="Receipt number, who took it…"></label>' +
       '<button class="bf-btn bf-btn-honey" type="submit">Record payment</button></form></div>';
@@ -528,6 +531,23 @@
   // Adds payments to a team record, skipping Blackbaud refs it already has. A Blackbaud payment the team already typed in
   // by hand (Online (Blackbaud), same amount, no ref) is linked to it instead of counted twice. Paid in full marks them Paid.
   function handTyped(list, p) { return list.filter(function (x) { return !x.ref && x.how === 'Online (Blackbaud)' && x.amount === p.amount; })[0]; }
+  // A vendor who applied on paper and pays by mail is on the Blackbaud event with no amount: noted on the record, once.
+  function noteMail(rec, r) {
+    if (rec.mail && rec.mail.ref === r.ref) return 0;
+    rec.mail = { ref: r.ref, date: r.date || '', fees: r.fees || '', by: myName(), at: new Date().toISOString() };
+    return 1;
+  }
+  function refsOf(v) { var out = paymentsOf(v).map(function (p) { return p.ref; }); if (v.rec && v.rec.mail) out.push(v.rec.mail.ref); return out.filter(Boolean); }
+  // Blackbaud rows for one vendor: payments added (or linked), mail-in registrations noted. -> {added, noted}
+  function applyRows(v, rec, rows) {
+    var noted = 0;
+    rows.forEach(function (r) { if (r.mail) noted += noteMail(rec, r); });
+    return { added: addPayments(v, rec, rows.filter(function (r) { return !r.mail; }).map(bbPayment)), noted: noted };
+  }
+  function bbLine(r) {
+    return (r.mail ? '<b>✉ By mail</b> (no amount in Blackbaud) · on the event ' + esc(dayText(r.date)) : '<b>' + money(r.amount) + '</b> ' + esc(dayText(r.date))) +
+      ' · ' + esc(r.name || '(no name)') + (r.email ? ' · ' + esc(r.email) : '') + ' <small>Blackbaud ' + (r.mail ? 'participant ' + esc(r.ref.replace(/^participant-/, '')) : 'gift ' + esc(r.ref)) + '</small>';
+  }
   function addPayments(v, rec, list) {
     rec.payments = rec.payments || [];
     var refs = {}; rec.payments.forEach(function (x) { if (x.ref) refs[x.ref] = 1; });
@@ -766,11 +786,11 @@
   }
   function bbRows(data) {     // only well-formed rows, whatever the file says
     return (Array.isArray(data && data.rows) ? data.rows : []).filter(function (r) {
-      return r && typeof r.ref === 'string' && r.ref && Number.isInteger(r.amount) && r.amount > 0 && r.amount < 10000000;
+      return r && typeof r.ref === 'string' && r.ref && (r.mail === true || (Number.isInteger(r.amount) && r.amount > 0 && r.amount < 10000000));
     }).map(function (r) {
       var t = function (x, n) { return typeof x === 'string' ? x.slice(0, n) : ''; };
-      return { ref: t(r.ref, 60), amount: r.amount, date: /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : '', email: t(r.email, 200), name: t(r.name, 200),
-        method: t(r.method, 40), online: r.online !== false };
+      return { ref: t(r.ref, 60), amount: r.mail === true ? null : r.amount, mail: r.mail === true, date: /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : '', email: t(r.email, 200), name: t(r.name, 200),
+        method: t(r.method, 40), online: r.online !== false && r.mail !== true, fees: t(r.fees, 120) };
     });
   }
   function bbPayment(r) {
@@ -781,13 +801,13 @@
   async function checkBlackbaud(fresh) {
     if (S.bbBusy) return;
     S.bbBusy = true; drawBbLine();
-    var added = 0, err = null;
+    var added = 0, noted = 0, err = null;
     try {
       if (fresh) { var r = await V.call('getPayments', { token: S.session.token }); if (r.error) throw new Error(r.error); S.bb = r; }
       if (S.bb && S.bb.sealed) {
         var data = await V.openApplication(S.session, S.bb.sealed), rows = bbRows(data), season = +data.season;
         var apps = S.apps.filter(function (v) { return v.season === season; });
-        var have = {}; S.apps.forEach(function (v) { paymentsOf(v).forEach(function (p) { if (p.ref) have[p.ref] = 1; }); });
+        var have = {}; S.apps.forEach(function (v) { refsOf(v).forEach(function (ref) { have[ref] = 1; }); });
         var groups = {}, unmatched = [];
         rows.forEach(function (r) {
           if (have[r.ref]) return;
@@ -797,16 +817,16 @@
         });
         var keys = Object.keys(groups);
         for (var i = 0; i < keys.length; i++) {
-          var g = groups[keys[i]], n = 0;
-          await saveRecord(g.v, function (rec) { n = addPayments(g.v, rec, g.rows.map(bbPayment)); });
-          added += n;
+          var g = groups[keys[i]], n = {};
+          await saveRecord(g.v, function (rec) { n = applyRows(g.v, rec, g.rows); });
+          added += n.added; noted += n.noted;
         }
-        S.bbResult = { at: new Date(), added: added, unmatched: unmatched, season: season, event: data.event || '' };
+        S.bbResult = { at: new Date(), added: added, noted: noted, unmatched: unmatched, season: season, event: data.event || '' };
       }
     } catch (x) { err = x; }
     S.bbBusy = false;
     if (err) S.bbResult = Object.assign({}, S.bbResult || {}, { error: friendly(err) });
-    if (added && S.tab === 'vendors' && $('#bbline')) vendorsView(); else drawBbLine();
+    if ((added || noted) && S.tab === 'vendors' && $('#bbline')) vendorsView(); else drawBbLine();
   }
   function bbLineHtml() {
     var b = S.bb, res = S.bbResult;
@@ -818,12 +838,14 @@
     if (S.bbBusy) bits.push('checking…');
     else if (res && res.error) bits.push('<span class="tm-err">' + esc(res.error) + '</span>');
     else if (res) {
-      bits.push(res.added ? '<b>' + res.added + ' new payment' + (res.added === 1 ? '' : 's') + ' added</b>' : 'all recorded');
+      if (res.added) bits.push('<b>' + res.added + ' new payment' + (res.added === 1 ? '' : 's') + ' added</b>');
+      if (res.noted) bits.push('<b>' + res.noted + ' paying by mail noted</b>');
+      if (!res.added && !res.noted) bits.push('all recorded');
       if (res.unmatched.length) bits.push('<button type="button" class="tm-link" id="bbun" aria-expanded="' + !!S.bbOpen + '">' + res.unmatched.length + ' not matched to a vendor</button>');
     }
     var list = res && res.unmatched && res.unmatched.length && S.bbOpen ? '<div class="tm-bbun"><p class="tm-muted">No ' + res.season + ' application has this email or name. Pick the vendor it belongs to:</p><ul class="tm-log tm-imp">' +
       res.unmatched.map(function (r, i) {
-        return '<li><b>' + money(r.amount) + '</b> ' + esc(dayText(r.date)) + ' · ' + esc(r.name || '(no name)') + (r.email ? ' · ' + esc(r.email) : '') + ' <small>Blackbaud gift ' + esc(r.ref) + '</small>' +
+        return '<li>' + bbLine(r) +
           '<div class="tm-row"><label class="tm-sr" for="bba' + i + '">Vendor</label><select id="bba' + i + '"><option value="">Choose a vendor…</option>' +
           S.apps.filter(function (v) { return v.season === res.season; }).sort(function (a, c) { return titleOf(a).localeCompare(titleOf(c)); }).map(function (v) {
             return '<option value="' + esc(v.no) + '">' + esc(titleOf(v)) + ' (' + esc(v.no) + ')</option>'; }).join('') +
@@ -841,7 +863,7 @@
         if (!v) return;
         busy(b, 'Adding…');
         try {
-          await saveRecord(v, function (rec) { addPayments(v, rec, [bbPayment(r)]); });
+          await saveRecord(v, function (rec) { applyRows(v, rec, [r]); });
           S.bbResult.unmatched.splice(i, 1);
           vendorsView();
         } catch (x) { unbusy(b); S.bbResult.error = friendly(x); drawBbLine(); }
@@ -859,11 +881,11 @@
     var out = [];
     rows.slice(1).forEach(function (r) {
       var get = function (i) { return i >= 0 && r[i] != null ? String(r[i]).trim() : ''; };
-      var amount = cents(get(c.amount)), ref = get(c.ref).slice(0, 60);
-      if (!ref || !amount) return;
+      var amount = cents(get(c.amount)), ref = get(c.ref).slice(0, 60), mail = /^mail/i.test(get(c.source)) && !amount;
+      if (!ref || !(amount || mail)) return;
       var name = get(c.name) || (get(c.first) + ' ' + get(c.last)).trim(), date = get(c.date).slice(0, 10);
-      out.push({ ref: ref, amount: amount, date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '', email: get(c.email), name: name,
-        method: get(c.method), online: !/entered/i.test(get(c.source)) });
+      out.push({ ref: ref, amount: mail ? null : amount, mail: mail, date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '', email: get(c.email), name: name,
+        method: get(c.method), online: !mail && !/entered/i.test(get(c.source)), fees: get(col(/^fees/)).slice(0, 120) });
     });
     return out;
   }
@@ -891,7 +913,7 @@
     var season = seasons[S.season] ? S.season : +Object.keys(seasons).sort().reverse()[0] || S.season;
     function draw() {
       var apps = S.apps.filter(function (v) { return v.season === season; });
-      var have = {}; apps.forEach(function (v) { paymentsOf(v).forEach(function (p) { if (p.ref) have[p.ref] = v; }); });
+      var have = {}; apps.forEach(function (v) { refsOf(v).forEach(function (ref) { have[ref] = v; }); });
       var already = [], match = [], unmatched = [], seen = {};
       rows.forEach(function (r) {
         if (have[r.ref] || seen[r.ref]) { already.push(r); return; }
@@ -900,38 +922,32 @@
         if (m) match.push({ r: r, v: m.v, by: m.by }); else unmatched.push(r);
       });
       var groups = {}; match.forEach(function (m) { (groups[m.v.no] = groups[m.v.no] || { v: m.v, rows: [] }).rows.push(m.r); });
-      function line(r) { return '<b>' + money(r.amount) + '</b> ' + esc(dayText(r.date)) + ' · ' + esc(r.name || '(no name)') + (r.email ? ' · ' + esc(r.email) : '') + ' <small>Blackbaud gift ' + esc(r.ref) + '</small>'; }
+      var line = bbLine;
       box.innerHTML = '<label class="tm-row"><span>Festival year</span><select id="payseason">' + Object.keys(seasons).sort().reverse().map(function (y) {
           return '<option value="' + y + '"' + (+y === season ? ' selected' : '') + '>' + y + '</option>'; }).join('') + '</select></label>' +
-        '<p>' + rows.length + ' payments in this file: <strong>' + match.length + '</strong> to add' +
+        '<p>' + rows.length + ' entries in this file: <strong>' + match.length + '</strong> to add' +
         (already.length ? ', ' + already.length + ' already recorded' : '') + (unmatched.length ? ', <strong>' + unmatched.length + '</strong> not matched' : '') + '.</p>' +
         (match.length ? '<ul class="tm-log tm-imp">' + match.map(function (m) {
-          var typed = handTyped(paymentsOf(m.v), m.r);
+          var typed = !m.r.mail && handTyped(paymentsOf(m.v), m.r);
           return '<li>' + line(m.r) + '<br>→ ' + esc(m.v.no) + ' ' + esc(titleOf(m.v)) + ' <small>matched by ' + m.by + '</small>' +
             (typed ? '<br><span class="tm-muted">Will be linked to the ' + money(m.r.amount) + ' online payment already typed in by hand (not counted twice).</span>' : '') + '</li>'; }).join('') + '</ul>' +
           '<button class="bf-btn bf-btn-honey" id="dopay">Add ' + match.length + ' payment' + (match.length === 1 ? '' : 's') + '</button>' : '') +
         '<p class="tm-wait" id="payprog" hidden></p>' +
-        (unmatched.length ? '<h3>Not matched</h3><p class="tm-muted">No ' + season + ' application with this email or name. Open the vendor in the Vendors tab and record these by hand (How: Online (Blackbaud)).</p>' +
+        (unmatched.length ? '<h3>Not matched</h3><p class="tm-muted">No ' + season + ' application with this email or name. Open the vendor in the Vendors tab and record these by hand.</p>' +
           '<ul class="tm-log tm-imp" id="unmatched">' + unmatched.map(function (r) { return '<li>' + line(r) + '</li>'; }).join('') + '</ul>' : '');
       $('#payseason').onchange = function () { season = +this.value; draw(); };
       var go = $('#dopay'); if (!go) return;
       go.onclick = async function () {
-        var btn = this, prog = $('#payprog'), keys = Object.keys(groups), added = 0; busy(btn, 'Adding…'); prog.hidden = false;
+        var btn = this, prog = $('#payprog'), keys = Object.keys(groups), added = 0, noted = 0; busy(btn, 'Adding…'); prog.hidden = false;
         try {
           for (var i = 0; i < keys.length; i++) {
-            var g = groups[keys[i]], at = new Date().toISOString();
-            var list = g.rows.map(function (r) {
-              return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), amount: r.amount, how: r.online ? 'Online (Blackbaud)' : 'Other',
-                date: r.date || today(), note: ((r.online ? '' : 'Entered in Raiser\'s Edge. ') + (r.method ? 'Paid by ' + r.method.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase() + '.' : '')).trim().slice(0, 200),
-                ref: r.ref, by: myName(), at: at };
-            });
-            var n = 0;
-            await saveRecord(g.v, function (rec) { n = addPayments(g.v, rec, list); });
-            added += n;
+            var g = groups[keys[i]], n = {};
+            await saveRecord(g.v, function (rec) { n = applyRows(g.v, rec, g.rows); });
+            added += n.added; noted += n.noted;
             S.bbResult = null;     // the automatic check's counts are out of date now
             prog.textContent = 'Added payments for ' + (i + 1) + ' of ' + keys.length + ' vendors…';
           }
-          prog.textContent = 'Done. ' + added + ' payment' + (added === 1 ? '' : 's') + ' added. Vendors paid in full are now marked Paid; the rest show under "Owes a balance".';
+          prog.textContent = 'Done. ' + added + ' payment' + (added === 1 ? '' : 's') + ' added' + (noted ? ', ' + noted + ' paying by mail noted' : '') + '. Vendors paid in full are now marked Paid; the rest show under "Owes a balance".';
           unbusy(btn); btn.hidden = true;
         } catch (x) { unbusy(btn); prog.textContent = 'Stopped: ' + friendly(x) + '. You can import the file again; payments already added are skipped.'; }
       };

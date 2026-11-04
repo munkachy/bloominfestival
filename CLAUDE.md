@@ -62,6 +62,14 @@ matching section here in the same commit, so the next session can start from thi
 - `addPayments` never records a `ref` twice, and links a Blackbaud payment to a hand-typed "Online (Blackbaud)"
   payment of the same amount without a `ref` (it gets the `ref` and a note) instead of counting it twice. Payments not
   made online (entered in RE by staff) come in as "Other" with a note.
+- **Paying by mail (paper application):** the office attaches these vendors to the event but enters no gift (a booth
+  check isn't a donation), so RE has no amount. betterBB sends every participant with no payment and either no fees
+  or a Vendor fee (not sponsors) as a row `{mail: true, amount: null, ref: 'participant-<RE participant ID>'}`, with
+  the participant's email or else the constituent record's. The Desk doesn't invent a payment: it notes
+  `rec.mail = {ref, date, fees, by, at}` once, shows a "✉ By mail" badge and a note in Payments, and preselects How
+  "Mail (paper application)" so the team records the check when it arrives. Unmatched ones (a paper vendor with no
+  application in the Desk) are listed with the vendor picker like unmatched payments; the Desk has no way yet to
+  create an application from Blackbaud.
 - **Fallback:** `python3 -m bbreport booth-payments` writes `betterBB/data/out/booth-payments-<event>.csv` for
   **Settings → Import payments (CSV)** (`preparePayments`; same matching, with a preview). That file is real data:
   never copy it into this repo.
