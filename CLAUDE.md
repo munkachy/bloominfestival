@@ -107,8 +107,8 @@ matching section here in the same commit, so the next session can start from thi
 - **Address on old-sheet imports:** before the fix on 4 Nov 2026, the CSV import put the email in Address ("Email
   Address" matched first). Vendors imported before then still show their email as their address. Re-importing skips
   them, so fix them by hand if needed.
-- Nobody has yet checked the payments, the Craft chips or the sync on the live Desk with real data. Ask the team
-  whether anything looks off.
+- The payments and Craft chips were tested only with fake vendors, not checked on the live Desk with real data. Ask
+  the team whether anything looks off.
 
 ## The map
 
