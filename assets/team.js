@@ -265,7 +265,7 @@
   /* ---------- loading the vendors ---------- */
   // Applications come from a public form, so every field is untrusted: keep plain text only, and honor the
   // old-sheet extras (status, notes, photo links) only on rows the team imported itself.
-  var TEXT = ['name', 'business', 'email', 'phone', 'address', 'website', 'category', 'about', 'notes', 'returningYears', 'legacyStamp', 'submittedAt'];
+  var TEXT = ['name', 'business', 'email', 'phone', 'address', 'website', 'category', 'about', 'notes', 'returningYears', 'legacyStamp', 'submittedAt', 'source'];
   function strings(a) { return Array.isArray(a) ? a.filter(function (x) { return typeof x === 'string'; }).map(function (x) { return x.slice(0, 2000); }).slice(0, 20) : []; }
   function clean(raw, legacy) {
     var r = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}, d = {};
@@ -401,7 +401,7 @@
       if (d.booths === 2) badges.push('<span class="tm-bdg" title="Two booth spaces">×2 booths</span>');
       if (d.electricity === 'yes') badges.push('<span class="tm-bdg" title="Needs electricity">⚡ Power</span>');
       if (v.returning) badges.push('<span class="tm-bdg" title="Has applied in an earlier year">↺ Returning</span>');
-      if (v.legacy) badges.push('<span class="tm-bdg tm-bdg-old" title="Brought over from the Google sheet">Google sheet</span>');
+      if (v.legacy) badges.push(v.d.source === PAPER ? '<span class="tm-bdg tm-bdg-old" title="Applied on paper; added from Blackbaud">Paper</span>' : '<span class="tm-bdg tm-bdg-old" title="Brought over from the Google sheet">Google sheet</span>');
       if (v.rec && v.rec.mail) badges.push('<span class="tm-bdg" title="Paper application, paying by mail (on the Blackbaud event)">✉ By mail</span>');
       if (owes(v)) badges.push('<span class="tm-bdg tm-bdg-owe" title="Paid ' + money(paidOf(v)) + ' of ' + money(dueOf(v)) + '">Owes ' + money(balanceOf(v)) + '</span>');
       var bo = window.BFTeamMap && BFTeamMap.boothFor(v.no);
@@ -434,7 +434,7 @@
     panel.hidden = false;
     panel.innerHTML = '<div class="tm-panel-in" role="dialog" aria-labelledby="ptitle">' +
       '<div class="tm-panel-top"><button type="button" class="tm-link" id="close">← Back to the list</button><span class="tm-pill st-' + st + '">' + esc(STATUS[st].label) + '</span></div>' +
-      '<p class="bf-label">' + esc(v.no) + (v.legacy ? ' · from the Google sheet' : '') + '</p>' +
+      '<p class="bf-label">' + esc(v.no) + (v.legacy ? (d.source === PAPER ? ' · paper application (added from Blackbaud)' : ' · from the Google sheet') : '') + '</p>' +
       '<h2 id="ptitle" tabindex="-1">' + esc(titleOf(v)) + '</h2>' +
       (d.business && d.name ? '<p class="tm-sub">' + esc(d.name) + '</p>' : '') +
       '<div class="tm-status" role="group" aria-label="Status">' + STATUSES.map(function (s) {
@@ -860,7 +860,13 @@
           '<div class="tm-row"><label class="tm-sr" for="bba' + i + '">Vendor</label><select id="bba' + i + '"><option value="">Choose a vendor…</option>' +
           S.apps.filter(function (v) { return v.season === res.season; }).sort(function (a, c) { return titleOf(a).localeCompare(titleOf(c)); }).map(function (v) {
             return '<option value="' + esc(v.no) + '">' + esc(titleOf(v)) + ' (' + esc(v.no) + ')</option>'; }).join('') +
-          '</select><button type="button" class="bf-btn" data-bba="' + i + '">Add to vendor</button></div></li>';
+          '</select><button type="button" class="bf-btn" data-bba="' + i + '">Add to vendor</button></div>' +
+          '<details class="tm-bbnew"><summary>Not in the Desk? Add ' + esc(r.name || 'them') + ' as a new vendor</summary>' +
+          '<p class="tm-muted">For a paper application. Name and email come from Blackbaud' + (r.email ? '' : ' (Blackbaud has no email for them)') + '.</p><div class="tm-row">' +
+          '<label><span>Business name (optional)</span><input id="bbb' + i + '" maxlength="200"></label>' +
+          '<label><span>Craft</span><select id="bbc' + i + '">' + CRAFTS.map(function (c) { return '<option' + (c.id === 'Other' ? ' selected' : '') + '>' + esc(c.id) + '</option>'; }).join('') + '</select></label>' +
+          '<label><span>Booth spaces</span><select id="bbs' + i + '"><option value="1">1</option><option value="2">2</option><option value="">Not sure</option></select></label>' +
+          '<button type="button" class="bf-btn bf-btn-honey" data-bbnew="' + i + '">Add to the Desk</button></div></details></li>';
       }).join('') + '</ul></div>' : '';
     return '<p>' + bits.join(' · ') + ' <button type="button" class="tm-link" id="bbcheck"' + (S.bbBusy ? ' disabled' : '') + '>Check now</button></p>' + list;
   }
@@ -880,6 +886,32 @@
         } catch (x) { unbusy(b); S.bbResult.error = friendly(x); drawBbLine(); }
       };
     });
+    $all('[data-bbnew]').forEach(function (b) {
+      b.onclick = async function () {
+        var i = +b.getAttribute('data-bbnew'), r = S.bbResult.unmatched[i];
+        busy(b, 'Adding…');
+        try { await addFromBlackbaud(r, $('#bbb' + i).value.trim(), $('#bbc' + i).value, +$('#bbs' + i).value || null); S.bbResult.unmatched.splice(i, 1); vendorsView(); }
+        catch (x) { unbusy(b); S.bbResult.error = friendly(x); drawBbLine(); }
+      };
+    });
+  }
+  // A vendor who is on the Blackbaud event but has no application here (a paper application): a new application with
+  // the name and email from Blackbaud, sealed like any other, then the Blackbaud row (mail-in note or payment) on it.
+  var PAPER = 'Paper application (added from Blackbaud)';
+  async function addFromBlackbaud(r, business, craft, booths) {
+    await fetchApps();     // the latest list, so a vendor someone else just added isn't added twice
+    var dup = S.apps.filter(function (v) { return refsOf(v).indexOf(r.ref) >= 0 || (v.d.source === PAPER && v.d.legacyStamp === r.ref); })[0];
+    if (!dup) {
+      var at = new Date().toISOString(), app = { name: r.name || '', business: business || '', email: r.email || '', category: CRAFT[craft] ? craft : 'Other',
+        booths: booths, source: PAPER, legacyStamp: r.ref, submittedAt: at };
+      var sealed = await V.sealApplication(S.session.pub, app, []);
+      var res = await V.call('importMany', { token: S.session.token, items: [{ season: S.bbResult.season, at: at, app: sealed.app }] });
+      if (res.error) throw new Error(res.error);
+      await fetchApps();
+      dup = find(res.nos[0]);
+      if (!dup) throw new Error('The new vendor was saved but couldn\'t be opened. Reload the page.');
+    }
+    await saveRecord(dup, function (rec) { applyRows(dup, rec, [r]); });
   }
 
   /* ---------- import Blackbaud payments (CSV from betterBB: bbreport booth-payments) ---------- */

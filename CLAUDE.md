@@ -71,8 +71,11 @@ matching section here in the same commit, so the next session can start from thi
   the participant's email or else the constituent record's. The Desk doesn't invent a payment: it notes
   `rec.mail = {ref, date, fees, by, at}` once, shows a "✉ By mail" badge and a note in Payments, and preselects How
   "Mail (paper application)" so the team records the check when it arrives. Unmatched ones (a paper vendor with no
-  application in the Desk) are listed with the vendor picker like unmatched payments; the Desk has no way yet to
-  create an application from Blackbaud.
+  application in the Desk) are listed with the vendor picker like unmatched payments, plus **"Not in the Desk? Add
+  … as a new vendor"** (`addFromBlackbaud`): business name, craft and booth spaces typed by the team, name and email
+  from Blackbaud, sealed and saved through `importMany` (so `legacy: true`, `source` "Paper application (added from
+  Blackbaud)", `legacyStamp` = the Blackbaud ref, list badge "Paper"), then the Blackbaud row applied to it. The rest
+  of a paper application (phone, address) isn't in Blackbaud; the Desk can't edit application fields yet.
 - **Fallback:** `python3 -m bbreport booth-payments` writes `betterBB/data/out/booth-payments-<event>.csv` for
   **Settings → Import payments (CSV)** (`preparePayments`; same matching, with a preview). That file is real data:
   never copy it into this repo.

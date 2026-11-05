@@ -229,5 +229,10 @@
 .tm-bbun { margin-bottom: 14px; }
 .tm-bbun .tm-row { margin-top: 8px; gap: 8px; flex-wrap: wrap; }
 .tm-bbun select { max-width: 100%; min-width: 0; flex: 1 1 200px; }
+.tm-bbnew { margin-top: 8px; }
+.tm-bbnew summary { cursor: pointer; color: var(--bf-ink-soft); font-size: .9rem; }
+.tm-bbnew .tm-row { align-items: flex-end; }
+.tm-bbnew label { display: flex; flex-direction: column; gap: 2px; flex: 1 1 160px; min-width: 0; font-size: .85rem; }
+.tm-bbnew input, .tm-bbnew select { flex: none; width: 100%; min-width: 0; }
 .tm-settings #synckey { flex: 1 1 260px; min-width: 0; font-family: ui-monospace, monospace; }
 .tm-mailnote { border-left: 3px solid var(--bf-honey, #d4a64a); padding: 6px 10px; margin: 8px 0; overflow-wrap: anywhere; }
