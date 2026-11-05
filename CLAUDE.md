@@ -98,6 +98,18 @@ matching section here in the same commit, so the next session can start from thi
   thank-you emails are off until Microsoft 365 sending is set up on the betterBB side (needs the school's IT).
 - Planned: a T-shirt section on the same page (photos, size pickers, one order summary) once the shirts exist.
 
+## Open items (as of 5 Nov 2026)
+
+- **Paper vendors with no application in the Desk:** the user hasn't decided whether the Desk should create one from
+  the Blackbaud participant. Until then they show as unmatched, and the team adds them by hand.
+- **Amount due defaults** to `BOOTH_FEE` × spaces + `POWER_FEE`, so a double booth defaults to $550. That was an
+  assumption; the team can change any vendor's amount due. Confirm it with the festival team.
+- **Address on old-sheet imports:** before the fix on 4 Nov 2026, the CSV import put the email in Address ("Email
+  Address" matched first). Vendors imported before then still show their email as their address. Re-importing skips
+  them, so fix them by hand if needed.
+- Nobody has yet checked the payments, the Craft chips or the sync on the live Desk with real data. Ask the team
+  whether anything looks off.
+
 ## The map
 
 - Coordinates are **feet** on Br. Nicholas's page 1 (1 drawing unit = 1 ft, checked against OpenStreetMap building
