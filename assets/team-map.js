@@ -8,8 +8,7 @@
   var V = window.BFVault, M = window.BFMap;
   var T = { doc: null, rev: 0, pending: [], undo: [], redo: [], timer: null, saving: false, edit: false, snap: true,
     placing: null, map: null, root: null, ctx: null, q: '' };
-  var LIVE = ['accepted', 'deposit', 'paid'];
-  var PAY_WORD = { accepted: 'Awaiting payment', deposit: 'Deposit paid', paid: 'Paid' };
+  var LIVE = ['accepted', 'paid'];
 
   /* ---------- helpers ---------- */
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -296,9 +295,9 @@
     var b = T.doc.booths, used = b.filter(function (x) { return x.app; }).length, todo = unplaced(), s = T.doc.settings, z = zonesList();
     return '<div><p class="bf-label">Festival map ' + V.SEASON + '</p><h2>' + b.length + ' booths</h2><p class="tmap-muted">' + used + ' with a vendor · ' + (b.length - used) + ' open</p></div>' +
       '<div class="tmap-card"><h3>Vendors to place (' + todo.length + ')</h3>' +
-      (todo.length ? '<p class="tmap-help">Accepted vendors (paid or not) without a booth. Drag one onto a booth, or click one and then click a booth.</p><ul class="tmap-vlist">' + todo.map(function (v) {
+      (todo.length ? '<p class="tmap-help">Accepted and paid vendors without a booth. Drag one onto a booth, or click one and then click a booth.</p><ul class="tmap-vlist">' + todo.map(function (v) {
         var st = stat(v);
-        return '<li><button type="button" draggable="true" data-place="' + esc(v.no) + '" aria-pressed="' + (T.placing === v.no) + '" style="--st:' + M.STATUS_DOT[st] + '"><b>' + esc(title(v)) + demoBadge(v) + '</b><small>' + esc([PAY_WORD[st], v.d.category, v.d.booths === 2 ? '2 spaces' : '', v.d.electricity === 'yes' ? '⚡ needs power' : ''].filter(Boolean).join(' · ')) + '</small></button></li>';
+        return '<li><button type="button" draggable="true" data-place="' + esc(v.no) + '" aria-pressed="' + (T.placing === v.no) + '" style="--st:' + M.STATUS_DOT[st] + '"><b>' + esc(title(v)) + demoBadge(v) + '</b><small>' + esc([st === 'paid' ? 'Paid' : 'Awaiting payment', v.d.category, v.d.booths === 2 ? '2 spaces' : '', v.d.electricity === 'yes' ? '⚡ needs power' : ''].filter(Boolean).join(' · ')) + '</small></button></li>';
       }).join('') + '</ul>' : '<p class="tmap-muted">Everyone accepted has a booth.</p>') + '</div>' +
       '<div class="tmap-card"><h3>Vendor map</h3><p class="tmap-muted">' + (s.publishedAt ? 'Published ' + esc(timeText(s.publishedAt)) + (s.publishedBy ? ' by ' + esc(s.publishedBy) : '') + '. Publish again after changes.' : 'Not published yet. Vendors and visitors see it at bloominfestival.com/map once you publish.') + '</p>' +
       '<label class="tmap-switch">Show vendors\' names on the vendor map <input type="checkbox" id="mnames"' + (s.showNames ? ' checked' : '') + '></label>' +
@@ -320,7 +319,7 @@
       v.missing ? '<p class="tmap-warn">Application ' + esc(b.app) + ' was removed.</p><button type="button" class="tmap-x" id="munassign">Clear this booth</button>' :
       '<div><b>' + esc(v.name) + '</b>' + demoBadge(v) + (vv.d.business && vv.d.name ? '<br><span class="tmap-muted">' + esc(vv.d.name) + '</span>' : '') + '</div>' +
       '<p class="tmap-muted">' + esc([vv.d.category, vv.no].filter(Boolean).join(' · ')) + '</p>' +
-      '<div class="tmap-row"><span class="tm-pill st-' + esc(st) + '">' + esc(PAY_WORD[st] || st) + '</span>' + (vv.d.booths === 2 ? '<span class="tmap-muted">asked for 2 spaces</span>' : '') + '</div>' +
+      '<div class="tmap-row"><span class="tm-pill st-' + esc(st) + '">' + esc(st === 'accepted' ? 'Awaiting payment' : st) + '</span>' + (vv.d.booths === 2 ? '<span class="tmap-muted">asked for 2 spaces</span>' : '') + '</div>' +
       (vv.d.booths === 2 && !b.double ? '<p class="tmap-warn">This vendor asked for two spaces. ' + (T.edit ? 'Turn on "Two spaces side by side".' : 'Turn on <b>Edit map</b>, then "Two spaces side by side".') + '</p>' : '') +
       (v.power && !b.power ? '<p class="tmap-warn">⚡ This vendor needs electricity, and this booth isn\'t marked as having power.</p>' : v.power ? '<p class="tmap-muted">⚡ Needs electricity (this booth has power).</p>' : '') +
       '<div class="tmap-row">' + (vv.d.phone ? '<a class="tmap-btn" href="tel:' + esc(String(vv.d.phone).replace(/[^0-9+]/g, '')) + '">Call</a>' : '') + (vv.d.email ? '<a class="tmap-btn" href="mailto:' + esc(vv.d.email) + '">Email</a>' : '') +
@@ -340,7 +339,7 @@
     var todo = unplaced();
     if (!todo.length) return '<p class="tmap-help">No accepted vendors are waiting for a booth.</p>';
     return '<label class="tmap-field">Put a vendor here<select id="massign"><option value="">Choose a vendor…</option>' + todo.map(function (v) {
-      return '<option value="' + esc(v.no) + '">' + esc(title(v) + (v.demo ? ' [demo]' : '') + ' (' + PAY_WORD[stat(v)].toLowerCase() + ')' + (v.d.booths === 2 ? ' · 2 spaces' : '') + (v.d.electricity === 'yes' ? ' · ⚡' : '')) + '</option>';
+      return '<option value="' + esc(v.no) + '">' + esc(title(v) + (v.demo ? ' [demo]' : '') + (stat(v) === 'paid' ? ' (paid)' : ' (awaiting payment)') + (v.d.booths === 2 ? ' · 2 spaces' : '') + (v.d.electricity === 'yes' ? ' · ⚡' : '')) + '</option>';
     }).join('') + '</select></label>';
   }
   function itemHtml(it) {
