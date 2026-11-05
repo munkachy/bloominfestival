@@ -55,7 +55,8 @@ matching section here in the same commit, so the next session can start from thi
 - Setup, once: redeploy `Code.gs` (actions `syncKey`, `getPayments`, `putPayments`; `dump` also returns `payments`),
   run `python3 -m bbreport booth-sync --setup` on the Mac (saves `data/bf_sync.json`, prints the key), paste the key in
   the Desk's **Settings → Blackbaud payments from the office Mac**, then install the launchd agent. "Disconnect the
-  Mac" there clears the key.
+  Mac" there clears the key. **Done 5 Nov 2026:** the sync is running, including the paper-application vendors the
+  office adds to the event.
 - **The Desk** (`checkBlackbaud` in `team.js`) opens the sealed payments when the Vendors tab loads and on
   **Check now**, matches each to that festival year's applications by email, then by name (business or contact), and
   adds new ones (`{how: 'Online (Blackbaud)', ref: <RE gift ID>}`) through `saveRecord`/`addPayments`. The line above
@@ -93,6 +94,9 @@ matching section here in the same commit, so the next session can start from thi
   `betterBB/config/give-bloomin-2026.json`. CORS allows only bloominfestival.com.
 - Price/tickets per sheet live in both `tickets.js` (display) and the betterBB config (what's charged): change both.
 - These buyers are event 21 participants, so the booth sync skips anyone the ticket form added.
+- Each paid order emails the Desk's ticket-order Notices list through `orderNote` (live since 5 Nov 2026). Buyer
+  thank-you emails are off until Microsoft 365 sending is set up on the betterBB side (needs the school's IT).
+- Planned: a T-shirt section on the same page (photos, size pickers, one order summary) once the shirts exist.
 
 ## The map
 
