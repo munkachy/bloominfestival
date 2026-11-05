@@ -62,6 +62,7 @@ function handle_(q, e) {
       case 'syncKey': return out_(teamOnly_(q, function () { return syncKey_(q); }));
       case 'getPayments': return out_(teamOnly_(q, function () { return Object.assign({ ok: true }, payments_()); }));
       case 'putPayments': return out_(putPayments_(q));
+      case 'orderNote': return out_(orderNote_(q));
       default: return out_({ ok: true, service: "Bloomin' Festival mailbox", ready: !!readJson_('keyring.json', null) });
     }
   } catch (err) {
@@ -277,15 +278,23 @@ function importMany_(q) {
   }
 }
 
-// Team settings kept by the script: who gets an email when a new application arrives.
+// Team settings kept by the script: who gets an email when a new application arrives (NOTIFY), and who gets one
+// when a ticket order is paid (NOTIFY_ORDERS; until it is saved, the application list is used).
 function settings_(q) {
   var props = PropertiesService.getScriptProperties();
-  if (Array.isArray(q.notify)) {
-    var list = q.notify.map(function (x) { return String(x).trim(); }).filter(function (x) { return x; });
+  var lists = { notify: 'NOTIFY', notifyOrders: 'NOTIFY_ORDERS' };
+  for (var k in lists) {
+    if (!Array.isArray(q[k])) continue;
+    var list = q[k].map(function (x) { return String(x).trim(); }).filter(function (x) { return x; });
     if (list.length > 5 || list.some(function (x) { return !/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(x); })) return { error: 'bad-email' };
-    props.setProperty('NOTIFY', JSON.stringify(list));
+    props.setProperty(lists[k], JSON.stringify(list));
   }
-  return { ok: true, notify: JSON.parse(props.getProperty('NOTIFY') || '[]') };
+  return { ok: true, notify: JSON.parse(props.getProperty('NOTIFY') || '[]'), notifyOrders: orderList_() };
+}
+
+function orderList_() {
+  var props = PropertiesService.getScriptProperties();
+  return JSON.parse(props.getProperty('NOTIFY_ORDERS') || props.getProperty('NOTIFY') || '[]');
 }
 
 // A short note to the team. It carries only the application number; the details stay locked.
@@ -295,7 +304,7 @@ function notify_(no) {
   try {
     MailApp.sendEmail({
       to: list.join(','),
-      subject: "New Bloomin' Festival application " + no,
+      subject: "[Vendor application] New Bloomin' Festival application " + no,
       body: "A new vendor application (" + no + ") has arrived.\n\nOpen the Vendor Desk to read it: https://bloominfestival.com/team/\n\n" +
         "For the vendor's privacy, the application's details are locked and appear only in the Desk."
     });
@@ -368,6 +377,38 @@ function putPayments_(q) {
   writeJson_('payments.json', { at: now, ct: { epk: q.payments.epk, iv: q.payments.iv, ct: q.payments.ct } });
   props.setProperty('SYNC_OK_AT', now);
   props.deleteProperty('SYNC_ERROR');
+  return { ok: true };
+}
+
+// A note to the team when someone orders on ticket-tshirts/, sent to the ticket-order Notices list (Desk → Settings).
+// Sent by the office Mac with its sync key.
+// It carries only numbers and a status: the buyer's name, email and address stay on the office Mac.
+function orderNote_(q) {
+  var cache = CacheService.getScriptCache();
+  var fails = Number(cache.get('syncfails') || 0);
+  if (fails >= FAILS_ALLOWED) return { error: 'paused' };
+  var want = PropertiesService.getScriptProperties().getProperty('SYNC_HASH');
+  if (!want || sha256Hex_(String(q.sync || '')) !== want) {
+    cache.put('syncfails', String(fails + 1), 900);
+    return { error: 'wrong-sync-key' };
+  }
+  var to = orderList_();
+  if (!to.length) return { error: 'no-notify-list' };
+  var money = function (n) { n = Number(n); return isFinite(n) && n >= 0 && n < 1e6 ? '$' + n.toFixed(2) : '?'; };
+  var sheets = Math.max(0, Math.min(1000, parseInt(q.sheets, 10) || 0));
+  var statuses = { recorded: 'recorded in Raiser\'s Edge', needs_match: 'NEEDS STAFF: match the buyer to a constituent',
+                   record_failed: 'NEEDS STAFF: not recorded in Raiser\'s Edge', paid: 'paid, recording in Raiser\'s Edge' };
+  var status = statuses[q.status] || 'paid';
+  MailApp.sendEmail({
+    to: to.join(','),
+    subject: "[Ticket order] New Bloomin' ticket order: " + money(q.total) + (/^NEEDS/.test(status) ? ' (needs staff)' : ''),
+    body: 'A new order was paid on bloominfestival.com.\n\n' +
+      'Total: ' + money(q.total) + '\n' +
+      'Sweepstakes sheets: ' + sheets + ' (' + sheets * 6 + ' tickets)\n' +
+      'Additional gift: ' + money(q.gift) + '\n' +
+      'Status: ' + status + '\n\n' +
+      "The buyer's name, email and address are on the office page (log in): https://br.taile138aa.ts.net/online-gifts\n"
+  });
   return { ok: true };
 }
 

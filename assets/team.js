@@ -168,7 +168,7 @@
         var r = await V.call('init', { keyring: made.keyring, tokenHash: made.tokenHash, recHash: made.recHash });
         if (r.error) throw new Error(r.error);
         S.session = made.session;
-        try { await V.call('settings', { token: S.session.token, notify: NOTIFY_DEFAULT }); } catch (x) {}
+        try { await V.call('settings', { token: S.session.token, notify: NOTIFY_DEFAULT, notifyOrders: NOTIFY_DEFAULT }); } catch (x) {}
         afterSignIn();
       } catch (x) { unbusy(btn); err.textContent = friendly(x); err.hidden = false; }
     };
@@ -698,11 +698,16 @@
   /* ---------- settings ---------- */
   async function settingsView() {
     screen('<div class="tm-settings">' +
-      '<section class="tm-card"><p class="bf-label">Notices</p><h2>Email when a new application arrives</h2>' +
-      '<p>One address per line (up to 5). The email only says an application arrived and gives its number; the details stay locked here.</p>' +
-      '<textarea id="notify" rows="3" aria-label="Notification addresses">Loading…</textarea>' +
+      '<section class="tm-card"><p class="bf-label">Notices</p><h2>Email when a new vendor application arrives</h2>' +
+      '<p>One address per line (up to 5). The email is marked <strong>[Vendor application]</strong> and only gives the application\'s number; the details stay locked here.</p>' +
+      '<textarea id="notify" rows="3" aria-label="Addresses for new vendor applications">Loading…</textarea>' +
       '<div class="tm-row"><button class="bf-btn bf-btn-honey" id="savenotify">Save</button><span class="tm-ok" id="notifyok" hidden>Saved.</span></div>' +
-      '<p class="tm-err" id="notifyerr" role="alert" hidden></p></section>' +
+      '<p class="tm-err" id="notifyerr" role="alert" hidden></p>' +
+      '<h2 class="tm-h2gap">Email when a ticket order is paid</h2>' +
+      '<p>One address per line (up to 5). The email is marked <strong>[Ticket order]</strong> and gives the total and sheet count; the buyer\'s details stay on the office Mac.</p>' +
+      '<textarea id="notifyorders" rows="3" aria-label="Addresses for ticket orders">Loading…</textarea>' +
+      '<div class="tm-row"><button class="bf-btn bf-btn-honey" id="savenotifyorders">Save</button><span class="tm-ok" id="notifyordersok" hidden>Saved.</span></div>' +
+      '<p class="tm-err" id="notifyorderserr" role="alert" hidden></p></section>' +
 
       '<section class="tm-card"><p class="bf-label">Bring over</p><h2>Import from the Google sheet</h2>' +
       '<p>In the Google sheet of form responses, choose <strong>File → Download → Comma-separated values (.csv)</strong>, then pick that file here. ' +
@@ -736,13 +741,19 @@
     try {
       var r = await V.call('settings', { token: S.session.token });
       $('#notify').value = (r.notify || []).join('\n');
-    } catch (x) { $('#notify').value = ''; }
-    $('#savenotify').onclick = async function () {
-      var list = $('#notify').value.split(/[\n,;]+/).map(function (x) { return x.trim(); }).filter(Boolean);
-      var ok = $('#notifyok'), err = $('#notifyerr'); ok.hidden = err.hidden = true;
-      try { var r = await V.call('settings', { token: S.session.token, notify: list }); if (r.error) throw new Error(r.error === 'bad-email' ? 'One of those addresses doesn\'t look right (or there are more than 5).' : r.error); ok.hidden = false; }
-      catch (x) { err.textContent = friendly(x); err.hidden = false; }
-    };
+      $('#notifyorders').value = (r.notifyOrders || []).join('\n');
+    } catch (x) { $('#notify').value = $('#notifyorders').value = ''; }
+    function saveList(id, field) {
+      $('#save' + id).onclick = async function () {
+        var list = $('#' + id).value.split(/[\n,;]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+        var ok = $('#' + id + 'ok'), err = $('#' + id + 'err'), body = { token: S.session.token };
+        ok.hidden = err.hidden = true; body[field] = list;
+        try { var r = await V.call('settings', body); if (r.error) throw new Error(r.error === 'bad-email' ? 'One of those addresses doesn\'t look right (or there are more than 5).' : r.error); ok.hidden = false; }
+        catch (x) { err.textContent = friendly(x); err.hidden = false; }
+      };
+    }
+    saveList('notify', 'notify');
+    saveList('notifyorders', 'notifyOrders');
     $('#chpw').onsubmit = async function (e) {
       e.preventDefault();
       var a = $('#np1').value, b = $('#np2').value, err = $('#pwerr'), ok = $('#pwok'), btn = $('#chpw button[type=submit]');

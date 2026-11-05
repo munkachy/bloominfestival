@@ -33,6 +33,7 @@ matching section here in the same commit, so the next session can start from thi
   the public form, and emails the notification list (number only) when one arrives. To change it: edit `mailbox/Code.gs`,
   then the user pastes it into script.google.com and deploys a **new version** of the same deployment (the URL stays).
   `hello` → `{ready}`; actions are listed at the top of `handle_`.
+- `orderNote` (sync key): the office Mac's note to the office when a ticket order is paid. Only the total, sheet count, gift amount and status; sent to its own Notices list (Desk → Settings, script property `NOTIFY_ORDERS`, falling back to `NOTIFY` until saved). Subjects are marked [Ticket order] / [Vendor application].
 - The team password was created by the user on 30 Oct 2026. Notification addresses are set in the Desk's Settings tab.
 - The festival year rolls over automatically each May (`SEASON` in `vault.js`). Each year, update the dates, fees and
   deadline written in the pages (exhibitor page, the form's header, `map/`, the poster subtitle in `team-map.js`).
