@@ -6,6 +6,8 @@ Publish (push to `main`) after testing; Pages takes a minute or two, longer when
 
 **Keep this file current.** Whenever a session changes the site, its hosting, DNS, accounts or workflow, update the
 matching section here in the same commit, so the next session can start from this file alone.
+**Sessions share a progress board** in the development office's private repo: `PROGRESS.md` in `munkachy/betterBB`
+(rules in its CLAUDE.md, "Working across sessions"). Read it before starting; log festival work there in one line.
 
 | Path | What |
 |---|---|
