@@ -279,16 +279,34 @@
     d.photoLinks = legacy ? strings(r.photoLinks).filter(function (u) { return /^https:\/\//i.test(u); }) : [];
     return d;
   }
+  // The team can correct a vendor's details (Edit details). The application stays as the vendor sent it (v.orig); the
+  // team's changes live in the sealed team record (rec.edit: only the fields that differ) and are laid over it (v.d).
+  var EDIT = [
+    { k: 'name', label: 'Contact name' }, { k: 'business', label: 'Business name' }, { k: 'email', label: 'Email', type: 'email' },
+    { k: 'phone', label: 'Phone', type: 'tel' }, { k: 'address', label: 'Address', area: 2 }, { k: 'website', label: 'Website' },
+    { k: 'category', label: 'Category' }, { k: 'booths', label: 'Booth spaces' }, { k: 'electricity', label: 'Electricity' },
+    { k: 'about', label: 'About their work', area: 5 }];
+  function editValue(k, x) {
+    if (k === 'booths') return +x === 2 ? 2 : +x === 1 ? 1 : null;
+    if (k === 'electricity') return x === 'yes' || x === 'no' ? x : '';
+    return typeof x === 'string' ? x.trim().slice(0, 6000) : '';
+  }
+  function applyEdits(v) {
+    var d = Object.assign({}, v.orig), e = v.rec && v.rec.edit;
+    if (e && typeof e === 'object') EDIT.forEach(function (f) { if (Object.prototype.hasOwnProperty.call(e, f.k)) d[f.k] = editValue(f.k, e[f.k]); });
+    v.d = d;
+    v.craft = craftOf(d.category);
+  }
   async function fetchApps(progress) {
     var d = await V.call('dump', { token: S.session.token });
     if (d.error) throw new Error(d.error);
     var apps = [];
     for (var i = 0; i < d.applications.length; i++) {
       var a = d.applications[i], v = { no: a.no, season: a.season, at: a.at, legacy: !!a.legacy, photoIds: a.photos || [], sealed: a.app, rev: 0, rec: null };
-      try { v.d = clean(await V.openApplication(S.session, a.app), v.legacy); } catch (x) { v.d = clean({ name: '(could not be opened)' }); v.broken = true; }
-      v.craft = craftOf(v.d.category);
+      try { v.orig = clean(await V.openApplication(S.session, a.app), v.legacy); } catch (x) { v.orig = clean({ name: '(could not be opened)' }); v.broken = true; }
       var r = d.records[a.no];
       if (r) { v.rev = r.rev; try { v.rec = await V.openTeam(S.session, r.ct); } catch (x) {} }
+      applyEdits(v);
       apps.push(v);
       if (progress && i % 25 === 0) progress(i + 1, d.applications.length);
     }
@@ -465,7 +483,8 @@
       row('Electricity', d.electricity === 'yes' ? 'Yes (+$25)' : d.electricity === 'no' ? 'No' : '') +
       row('Exhibited before', d.returning === 'yes' ? 'Yes' + (d.returningYears ? ' (' + d.returningYears + ')' : '') : d.returning === 'no' ? 'No' : '') +
       row('Applied', whenTime(v.at)) +
-      '</dl>' +
+      '</dl>' + editedHtml(v) +
+      '<p class="tm-editbar"><button type="button" class="bf-btn" id="editbtn">Edit details</button></p>' + editFormHtml(v) +
       paymentsHtml(v) +
       boothHtml(v) +
       (d.about ? '<h3>About their work</h3><p class="tm-about">' + esc(d.about) + '</p>' : '') +
@@ -476,6 +495,7 @@
       legacyNotes +
       '<ul class="tm-log">' + notes.map(function (n) { return '<li><b>' + esc(n.by) + '</b> <time>' + esc(whenTime(n.at)) + '</time><p>' + esc(n.text) + '</p></li>'; }).join('') + '</ul>' +
       (history.length ? '<h3>History</h3><ul class="tm-log tm-hist">' + history.map(function (h) {
+        if (h.edited) return '<li><time>' + esc(whenTime(h.at)) + '</time> ' + esc(h.by) + ' edited ' + esc(h.edited.join(', ')) + '</li>';
         return '<li><time>' + esc(whenTime(h.at)) + '</time> ' + esc(h.by) + ' marked it <span class="tm-pill st-' + esc(h.to) + '">' + esc((STATUS[h.to] || {}).short || (STATUS[h.to] || {}).label || h.to) + '</span></li>';
       }).join('') + '</ul>' : '') +
       '<p class="tm-err" id="perr" role="alert" hidden></p>' +
@@ -490,7 +510,51 @@
     $('#noteform').onsubmit = function (e) { e.preventDefault(); var t = $('#note').value.trim(); if (t) addNote(v, t); };
     $('#remove').onclick = function () { removeApp(v, this); };
     wirePayments(v);
+    wireEdit(v);
     loadPhotos(v);
+  }
+  function editedHtml(v) {
+    var e = v.rec && v.rec.edit, keys = e ? EDIT.filter(function (f) { return Object.prototype.hasOwnProperty.call(e, f.k); }) : [];
+    if (!keys.length) return '';
+    var last = (v.rec.history || []).filter(function (h) { return h.edited; }).slice(-1)[0];
+    var show = function (f, x) { return f.k === 'booths' ? (x ? String(x) : 'not given') : f.k === 'electricity' ? (x === 'yes' ? 'Yes' : x === 'no' ? 'No' : 'not given') : x || '(empty)'; };
+    return '<details class="tm-edited"><summary>Edited by the team' + (last ? ' (' + esc(last.by) + ', ' + esc(whenTime(last.at)) + ')' : '') + '. What the vendor sent</summary><dl class="tm-dl">' +
+      keys.map(function (f) { return '<dt>' + esc(f.label) + '</dt><dd>' + esc(show(f, v.orig[f.k])) + '</dd>'; }).join('') + '</dl></details>';
+  }
+  function editFormHtml(v) {
+    var d = v.d;
+    return '<form id="editform" class="tm-payform tm-editform" hidden><div class="tm-editfields">' + EDIT.map(function (f) {
+      var id = 'ed-' + f.k, val = d[f.k], input;
+      if (f.k === 'booths') input = '<select id="' + id + '"><option value="1"' + (val === 1 ? ' selected' : '') + '>1</option><option value="2"' + (val === 2 ? ' selected' : '') + '>2, side by side</option><option value=""' + (val ? '' : ' selected') + '>Not given</option></select>';
+      else if (f.k === 'electricity') input = '<select id="' + id + '"><option value="yes"' + (val === 'yes' ? ' selected' : '') + '>Yes (+$25)</option><option value="no"' + (val === 'no' ? ' selected' : '') + '>No</option><option value=""' + (val ? '' : ' selected') + '>Not given</option></select>';
+      else if (f.k === 'category') input = '<input id="' + id + '" list="ed-crafts" maxlength="200" value="' + esc(val) + '"><datalist id="ed-crafts">' + CRAFTS.map(function (c) { return '<option value="' + esc(c.id) + '">'; }).join('') + '</datalist>';
+      else if (f.area) input = '<textarea id="' + id + '" rows="' + f.area + '" maxlength="6000">' + esc(val) + '</textarea>';
+      else input = '<input id="' + id + '" type="' + (f.type || 'text') + '" maxlength="300" value="' + esc(val) + '">';
+      return '<label class="' + (f.area ? 'tm-wide' : '') + '"><span>' + esc(f.label) + '</span>' + input + '</label>';
+    }).join('') + '</div><p class="tm-muted">The vendor\'s application is kept as they sent it; your changes are saved for the team (locked like the notes).</p>' +
+      '<div class="tm-row"><button class="bf-btn bf-btn-honey" type="submit">Save changes</button><button type="button" class="bf-btn" id="editcancel">Cancel</button></div></form>';
+  }
+  function wireEdit(v) {
+    var form = $('#editform'), btn = $('#editbtn');
+    btn.onclick = function () { form.hidden = false; btn.parentNode.hidden = true; $('#ed-name').focus(); };
+    $('#editcancel').onclick = function () { openPanel(v.no); };
+    form.onsubmit = async function (e) {
+      e.preventDefault();
+      var vals = {}, changed = [];
+      EDIT.forEach(function (f) { vals[f.k] = editValue(f.k, $('#ed-' + f.k).value); if (vals[f.k] !== editValue(f.k, v.d[f.k])) changed.push(f.label); });
+      if (vals.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(vals.email)) { showPanelError(new Error('That email doesn\'t look right.')); return; }
+      if (!changed.length) { openPanel(v.no); return; }
+      var sb = $('#editform button[type=submit]'); busy(sb, 'Saving…');
+      try {
+        await saveRecord(v, function (rec) {
+          var edit = {};
+          EDIT.forEach(function (f) { if (vals[f.k] !== editValue(f.k, v.orig[f.k])) edit[f.k] = vals[f.k]; });   // keep only what differs from the application
+          if (Object.keys(edit).length) rec.edit = edit; else delete rec.edit;
+          rec.history.push({ at: new Date().toISOString(), by: myName(), edited: changed });
+        });
+        vendorsView();
+      } catch (x) { unbusy(sb); showPanelError(x); }
+    };
   }
   function boothHtml(v) {
     var b = window.BFTeamMap && BFTeamMap.boothFor(v.no), d = v.d;
@@ -649,10 +713,11 @@
       change(next);
       var ct = await V.sealTeam(S.session, next);
       var r = await V.call('put', { token: S.session.token, id: v.no, rev: v.rev || 0, ct: ct });
-      if (r.ok) { v.rev = r.record.rev; v.rec = next; return true; }
+      if (r.ok) { v.rev = r.record.rev; v.rec = next; if (v.orig) applyEdits(v); return true; }
       if (r.error === 'conflict') {     // someone else saved first: take theirs, then apply ours on top
         v.rev = r.current ? r.current.rev : 0;
         v.rec = r.current ? await V.openTeam(S.session, r.current.ct) : null;
+        if (v.orig) applyEdits(v);
         continue;
       }
       throw new Error(r.error || 'save failed');

@@ -153,6 +153,15 @@
 .tm-sbtn:disabled { opacity: .6; cursor: wait; }
 .tm-contact { display: flex; flex-wrap: wrap; gap: 8px; }
 .tm-contact .bf-btn { min-height: 42px; padding: 6px 16px; font-size: .78rem; }
+.tm-editbar { margin: 10px 0 0; }
+.tm-editform { margin-top: 10px; }
+.tm-editform[hidden] { display: none; }
+.tm-editfields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
+.tm-editfields .tm-wide { grid-column: 1 / -1; }
+.tm-editfields input, .tm-editfields select, .tm-editfields textarea { width: 100%; min-width: 0; }
+.tm-edited { margin-top: 8px; font-size: .9rem; }
+.tm-edited summary { cursor: pointer; color: var(--bf-ink-soft); padding: 4px 0; }
+.tm-edited .tm-dl { margin-top: 6px; }
 .tm-dl { display: grid; grid-template-columns: 10rem 1fr; gap: 8px 16px; margin: 0; padding: 16px 18px; background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 16px; }
 .tm-dl dt { font: 600 .74rem/1.9 var(--bf-label); letter-spacing: .1em; text-transform: uppercase; color: var(--bf-ink-soft); }
 .tm-dl dd { margin: 0; overflow-wrap: anywhere; }
@@ -199,6 +208,7 @@
   .tm-crafts { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
   .tm-crafts .tm-chip { flex: none; min-height: 36px; font-size: .85rem; }
   .tm-payfields { grid-template-columns: 1fr 1fr; }
+  .tm-editfields { grid-template-columns: 1fr; }
   .tm-payfields label:nth-child(2) { grid-column: 1 / -1; order: 3; }
   .tm-paysum b { font-size: 1.1rem; }
 }
