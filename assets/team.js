@@ -854,7 +854,7 @@
       if (!res.added && !res.noted) bits.push('all recorded');
       if (res.unmatched.length) bits.push('<button type="button" class="tm-link" id="bbun" aria-expanded="' + !!S.bbOpen + '">' + res.unmatched.length + ' not matched to a vendor</button>');
     }
-    var list = res && res.unmatched && res.unmatched.length && S.bbOpen ? '<div class="tm-bbun"><p class="tm-muted">No ' + res.season + ' application has this email or name. Pick the vendor it belongs to:</p><ul class="tm-log tm-imp">' +
+    var list = res && res.unmatched && res.unmatched.length && S.bbOpen ? '<div class="tm-bbun"><p class="tm-muted">No ' + res.season + ' application has this email or name. Pick the vendor it belongs to, or, for a paper application that isn\'t in the Desk yet, add them as a new vendor:</p><ul class="tm-log tm-imp">' +
       res.unmatched.map(function (r, i) {
         return '<li>' + bbLine(r) +
           '<div class="tm-row"><label class="tm-sr" for="bba' + i + '">Vendor</label><select id="bba' + i + '"><option value="">Choose a vendor…</option>' +

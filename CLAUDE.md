@@ -2,7 +2,9 @@
 
 The festival of St. Bernard Abbey and St. Bernard Prep (Cullman, AL), April 17–18, 2027. Static site served from `main`
 (custom domain in `CNAME`); plain HTML, CSS and JS, no build step. Paths are **absolute** (`/assets/...`).
-Publish (push to `main`) after testing; Pages takes a minute or two, longer when GitHub's queue is slow.
+Publish (push to `main`) after testing; Pages takes a minute or two, longer when GitHub's queue is slow. After pushing,
+check it went live (`gh run list -L 3`, or `curl` the changed file): on 5 Nov 2026 a deploy failed with a GitHub 500
+and the site stayed on the old version until the next push. Fix: `gh run rerun <id>` or push again.
 
 **Keep this file current.** Whenever a session changes the site, its hosting, DNS, accounts or workflow, update the
 matching section here in the same commit, so the next session can start from this file alone.
