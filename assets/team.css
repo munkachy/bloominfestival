@@ -232,6 +232,10 @@
 .tm-bbnew { margin-top: 8px; }
 .tm-bbnew summary { cursor: pointer; color: var(--bf-ink-soft); font-size: .9rem; }
 .tm-bbnew .tm-row { align-items: flex-end; }
+.tm-bbform { align-items: flex-end; margin-top: 8px; }
+.tm-bbform label { display: flex; flex-direction: column; gap: 2px; flex: 1 1 160px; min-width: 0; font-size: .85rem; }
+.tm-bbform input, .tm-bbform select { flex: none; width: 100%; min-width: 0; }
+.tm-bbsrc { margin: 4px 0 0; font-size: .85rem; }
 .tm-bbnew label { display: flex; flex-direction: column; gap: 2px; flex: 1 1 160px; min-width: 0; font-size: .85rem; }
 .tm-bbnew input, .tm-bbnew select { flex: none; width: 100%; min-width: 0; }
 .tm-settings #synckey { flex: 1 1 260px; min-width: 0; font-family: ui-monospace, monospace; }

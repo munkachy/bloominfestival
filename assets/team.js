@@ -49,7 +49,7 @@
   var PAY_URL = 'https://bloominfestival.com/become-an-exhibitor/#bf-apply';
 
   var S = {
-    session: null, apps: [], season: V.SEASON, filter: 'all', craft: 'all', q: '', sort: 'newest', openNo: null, tab: 'vendors',
+    session: null, apps: [], season: V.SEASON, filter: 'all', craft: 'all', q: '', sort: ['newest', 'oldest', 'last', 'name', 'status'].indexOf(store('bf-desk-sort')) >= 0 ? store('bf-desk-sort') : 'newest', openNo: null, tab: 'vendors',
     photoUrls: {}, loadedAt: null
   };
 
@@ -313,6 +313,16 @@
   function statusOf(v) { var s = v.rec && v.rec.status; return STATUS[s] ? s : v.d.legacyStatus || 'new'; }
   function titleOf(v) { return v.d.business || v.d.name || v.no; }
   function key(s) { return String(s || '').trim().toLowerCase(); }
+  // "Mary Ann de la Cruz Jr." → "de la cruz mary ann": surname first (with de/van/st. etc.), suffixes dropped.
+  var SUFFIX = /^(jr|sr|ii|iii|iv|v|md|phd|dds|esq)\.?$/i, PARTICLE = /^(de|del|della|der|di|da|du|la|le|van|von|st\.?|saint|mc|mac|o')$/i;
+  function surnameKey(v) {
+    var w = String(v.d.name || '').replace(/,.*$/, '').trim().split(/\s+/).filter(Boolean);
+    while (w.length > 1 && SUFFIX.test(w[w.length - 1])) w.pop();
+    if (!w.length) return key(titleOf(v));
+    var i = w.length - 1;
+    while (i > 1 && PARTICLE.test(w[i - 1])) i--;
+    return key(w.slice(i).join(' ') + ' ' + w.slice(0, i).join(' '));
+  }
   function markReturning() {
     var seen = {};
     S.apps.forEach(function (v) { [key(v.d.email), key(v.d.business)].forEach(function (k) { if (k) (seen[k] = seen[k] || []).push(v.season); }); });
@@ -334,6 +344,8 @@
     });
     list.sort(function (a, b) {
       if (S.sort === 'name') return titleOf(a).localeCompare(titleOf(b));
+      if (S.sort === 'last') return surnameKey(a).localeCompare(surnameKey(b)) || titleOf(a).localeCompare(titleOf(b));
+      if (S.sort === 'oldest') return a.at < b.at ? -1 : a.at > b.at ? 1 : 0;
       if (S.sort === 'status') return STATUSES.findIndex(function (s) { return s.id === statusOf(a); }) - STATUSES.findIndex(function (s) { return s.id === statusOf(b); }) || titleOf(a).localeCompare(titleOf(b));
       return a.at < b.at ? 1 : -1;
     });
@@ -371,7 +383,7 @@
       }).join('') +
       '</div>' +
       '<div class="tm-bar"><input type="search" id="q" placeholder="Search names, businesses, crafts, emails…" value="' + esc(S.q) + '" aria-label="Search">' +
-      '<label class="tm-sort"><span class="tm-sr">Sort</span><select id="sort"><option value="newest">Newest first</option><option value="name">By name</option><option value="status">By status</option></select></label>' +
+      '<label class="tm-sort"><span class="tm-sr">Sort</span><select id="sort"><option value="newest">Received: newest first</option><option value="oldest">Received: oldest first</option><option value="last">By last name</option><option value="name">By business name</option><option value="status">By status</option></select></label>' +
       '<button type="button" class="tm-link" id="csv">Download list</button><button type="button" class="tm-link" id="print">Print list</button></div>' +
       '<ul class="tm-list" id="list"></ul>' +
       '<p class="tm-foot">Loaded ' + esc(S.loadedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })) + '. New applications appear when you press Refresh.</p>' +
@@ -384,7 +396,7 @@
     var row = $('.tm-crafts'), on = $('.tm-crafts [aria-pressed="true"]');     // on phones the row scrolls: keep the choice in sight
     if (row.scrollWidth > row.clientWidth) row.scrollLeft += on.getBoundingClientRect().left - row.getBoundingClientRect().left - (row.clientWidth - on.offsetWidth) / 2;
     $('#q').oninput = function () { S.q = this.value; drawList(); };
-    $('#sort').onchange = function () { S.sort = this.value; drawList(); };
+    $('#sort').onchange = function () { S.sort = this.value; store('bf-desk-sort', S.sort); drawList(); };
     $('#csv').onclick = downloadCsv;
     $('#print').onclick = function () { window.print(); };
     wireBbLine();
@@ -854,20 +866,27 @@
       if (!res.added && !res.noted) bits.push('all recorded');
       if (res.unmatched.length) bits.push('<button type="button" class="tm-link" id="bbun" aria-expanded="' + !!S.bbOpen + '">' + res.unmatched.length + ' not matched to a vendor</button>');
     }
-    var list = res && res.unmatched && res.unmatched.length && S.bbOpen ? '<div class="tm-bbun"><p class="tm-muted">No ' + res.season + ' application has this email or name. Pick the vendor it belongs to, or, for a paper application that isn\'t in the Desk yet, add them as a new vendor:</p><ul class="tm-log tm-imp">' +
-      res.unmatched.map(function (r, i) {
-        return '<li>' + bbLine(r) +
-          '<div class="tm-row"><label class="tm-sr" for="bba' + i + '">Vendor</label><select id="bba' + i + '"><option value="">Choose a vendor…</option>' +
-          S.apps.filter(function (v) { return v.season === res.season; }).sort(function (a, c) { return titleOf(a).localeCompare(titleOf(c)); }).map(function (v) {
-            return '<option value="' + esc(v.no) + '">' + esc(titleOf(v)) + ' (' + esc(v.no) + ')</option>'; }).join('') +
-          '</select><button type="button" class="bf-btn" data-bba="' + i + '">Add to vendor</button></div>' +
-          '<details class="tm-bbnew"><summary>Not in the Desk? Add ' + esc(r.name || 'them') + ' as a new vendor</summary>' +
-          '<p class="tm-muted">For a paper application. Name and email come from Blackbaud' + (r.email ? '' : ' (Blackbaud has no email for them)') + '.</p><div class="tm-row">' +
-          '<label><span>Business name (optional)</span><input id="bbb' + i + '" maxlength="200"></label>' +
-          '<label><span>Craft</span><select id="bbc' + i + '">' + CRAFTS.map(function (c) { return '<option' + (c.id === 'Other' ? ' selected' : '') + '>' + esc(c.id) + '</option>'; }).join('') + '</select></label>' +
-          '<label><span>Booth spaces</span><select id="bbs' + i + '"><option value="1">1</option><option value="2">2</option><option value="">Not sure</option></select></label>' +
-          '<button type="button" class="bf-btn bf-btn-honey" data-bbnew="' + i + '">Add to the Desk</button></div></details></li>';
-      }).join('') + '</ul></div>' : '';
+    var seasonVendors = res && res.unmatched && res.unmatched.length && S.bbOpen ? S.apps.filter(function (v) { return v.season === res.season; })
+      .sort(function (a, c) { return titleOf(a).localeCompare(titleOf(c)); }) : [];
+    // Paper applications (paying by mail) are always new to the Desk: just the form to add them.
+    // An online payment that didn't match can still be put on an existing vendor (paid with a different email).
+    function newForm(r, i) {
+      return '<div class="tm-row tm-bbform">' +
+        '<label><span>Business name (optional)</span><input id="bbb' + i + '" maxlength="200"></label>' +
+        '<label><span>Craft</span><select id="bbc' + i + '">' + CRAFTS.map(function (c) { return '<option' + (c.id === 'Other' ? ' selected' : '') + '>' + esc(c.id) + '</option>'; }).join('') + '</select></label>' +
+        '<label><span>Booth spaces</span><select id="bbs' + i + '"><option value="1">1</option><option value="2">2</option><option value="">Not sure</option></select></label>' +
+        '<button type="button" class="bf-btn bf-btn-honey" data-bbnew="' + i + '">Add as a new vendor</button></div>' +
+        '<p class="tm-muted tm-bbsrc">Name and email come from Blackbaud' + (r.email ? '' : ' (Blackbaud has no email for them)') + '.</p>';
+    }
+    function picker(i) {
+      return '<details class="tm-bbnew"><summary>Already in the Desk? Put it on their record</summary><div class="tm-row">' +
+        '<label class="tm-sr" for="bba' + i + '">Vendor</label><select id="bba' + i + '"><option value="">Choose a vendor…</option>' +
+        seasonVendors.map(function (v) { return '<option value="' + esc(v.no) + '">' + esc(titleOf(v)) + ' (' + esc(v.no) + ')</option>'; }).join('') +
+        '</select><button type="button" class="bf-btn" data-bba="' + i + '">Add to vendor</button></div></details>';
+    }
+    var list = res && res.unmatched && res.unmatched.length && S.bbOpen ? '<div class="tm-bbun"><p class="tm-muted">No ' + res.season +
+      ' application has this email or name. Add each one to the Desk as a new vendor:</p><ul class="tm-log tm-imp">' +
+      res.unmatched.map(function (r, i) { return '<li>' + bbLine(r) + newForm(r, i) + (r.mail ? '' : picker(i)) + '</li>'; }).join('') + '</ul></div>' : '';
     return '<p>' + bits.join(' · ') + ' <button type="button" class="tm-link" id="bbcheck"' + (S.bbBusy ? ' disabled' : '') + '>Check now</button></p>' + list;
   }
   function drawBbLine() { var el = $('#bbline'); if (el) { el.innerHTML = bbLineHtml(); wireBbLine(); } }

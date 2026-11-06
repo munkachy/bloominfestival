@@ -14,7 +14,7 @@ matching section here in the same commit, so the next session can start from thi
 | `index.html`, `artisans/`, `become-a-sponsor/`, … | The public pages. Styles: `assets/bf.css` (colours, fonts, buttons) + `assets/site.css` (header, footer, dark mode) |
 | `become-an-exhibitor/` | Exhibitor info, rules (`#bf-rules`), and the **payment gate**: two Yes/No questions before the Blackbaud form appears (`assets/bf.js`) |
 | `become-an-exhibitor/apply/` | **The vendor application** (`assets/apply.js`, `apply.css`). Replaced the Google Form (Oct 2026) |
-| `team/` | **Festival team tools** behind the team password: Vendor Desk (`assets/team.js`, `team.css`) and the Map tab (`assets/team-map.js`). The Desk's Craft chips use `CRAFTS` (the form's categories); free-text crafts from the old sheet or "Something else" are sorted by the first craft word in them, else Other. **Payments** (amount due, each payment with how/date/note, balance) live in the sealed team record (`rec.due`, `rec.payments`, cents); the usual fee is `BOOTH_FEE`/`POWER_FEE` in `team.js` (update with the exhibitor page). Paying in full marks the vendor Paid; "Owes a balance" lists partial payers. Online booth payments come in automatically from the office Mac (see "Blackbaud payments" below) |
+| `team/` | **Festival team tools** behind the team password: Vendor Desk (`assets/team.js`, `team.css`) and the Map tab (`assets/team-map.js`). The Desk's Craft chips use `CRAFTS` (the form's categories); free-text crafts from the old sheet or "Something else" are sorted by the first craft word in them, else Other. **Payments** (amount due, each payment with how/date/note, balance) live in the sealed team record (`rec.due`, `rec.payments`, cents); the usual fee is `BOOTH_FEE`/`POWER_FEE` in `team.js` (update with the exhibitor page). Paying in full marks the vendor Paid; "Owes a balance" lists partial payers. Online booth payments come in automatically from the office Mac (see "Blackbaud payments" below). **Sort** menu: received newest/oldest first, by last name (`surnameKey`: last word of the contact's name, keeping de/van/St. etc., dropping Jr./III), by business name, by status; remembered per browser (`bf-desk-sort`) |
 | `ticket-tshirts/` | **Sweepstakes ticket order form** (`assets/tickets.js`, `tickets.css`; reuses `apply.css` field styles). Sheets of 6 tickets for $25 plus an optional gift, paid through Blackbaud Checkout. See "Ticket orders" below. T-shirts are not sold online yet |
 | `map/` | **Public festival map** (`assets/map-public.js`); `?booth=12` highlights a vendor's booth |
 | `assets/map.js`, `map.css` | The map engine shared by the team map, the public map, the poster and the picture |
@@ -63,7 +63,8 @@ matching section here in the same commit, so the next session can start from thi
   **Check now**, matches each to that festival year's applications by email, then by name (business or contact), and
   adds new ones (`{how: 'Online (Blackbaud)', ref: <RE gift ID>}`) through `saveRecord`/`addPayments`. The line above
   the Craft chips shows when the Mac last checked (red after 3 hours: asleep, off, or its Blackbaud sign-in expired),
-  how many were added, and the ones not matched, each with a vendor picker to add it by hand.
+  how many were added, and the ones not matched, each with an **"Add as a new vendor"** form (below); unmatched
+  online payments also keep a tucked-away vendor picker ("Already in the Desk?") for a vendor who paid with another email.
 - `addPayments` never records a `ref` twice, and links a Blackbaud payment to a hand-typed "Online (Blackbaud)"
   payment of the same amount without a `ref` (it gets the `ref` and a note) instead of counting it twice. Payments not
   made online (entered in RE by staff) come in as "Other" with a note.
@@ -73,8 +74,8 @@ matching section here in the same commit, so the next session can start from thi
   the participant's email or else the constituent record's. The Desk doesn't invent a payment: it notes
   `rec.mail = {ref, date, fees, by, at}` once, shows a "✉ By mail" badge and a note in Payments, and preselects How
   "Mail (paper application)" so the team records the check when it arrives. Unmatched ones (a paper vendor with no
-  application in the Desk) are listed with the vendor picker like unmatched payments, plus **"Not in the Desk? Add
-  … as a new vendor"** (`addFromBlackbaud`): business name, craft and booth spaces typed by the team, name and email
+  application in the Desk) get only the **"Add as a new vendor"** form, no vendor picker: the team confirmed
+  (6 Nov 2026) that paper vendors are always new to the Desk (`addFromBlackbaud`): business name, craft and booth spaces typed by the team, name and email
   from Blackbaud, sealed and saved through `importMany` (so `legacy: true`, `source` "Paper application (added from
   Blackbaud)", `legacyStamp` = the Blackbaud ref, list badge "Paper"), then the Blackbaud row applied to it. The rest
   of a paper application (phone, address) isn't in Blackbaud; the Desk can't edit application fields yet.
@@ -103,10 +104,8 @@ matching section here in the same commit, so the next session can start from thi
   thank-you emails are off until Microsoft 365 sending is set up on the betterBB side (needs the school's IT).
 - Planned: a T-shirt section on the same page (photos, size pickers, one order summary) once the shirts exist.
 
-## Open items (as of 5 Nov 2026)
+## Open items (as of 6 Nov 2026)
 
-- **Paper vendors with no application in the Desk:** the user hasn't decided whether the Desk should create one from
-  the Blackbaud participant. Until then they show as unmatched, and the team adds them by hand.
 - **Amount due defaults** to `BOOTH_FEE` × spaces + `POWER_FEE`, so a double booth defaults to $550. That was an
   assumption; the team can change any vendor's amount due. Confirm it with the festival team.
 - **Address on old-sheet imports:** before the fix on 4 Nov 2026, the CSV import put the email in Address ("Email
