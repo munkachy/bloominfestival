@@ -156,24 +156,29 @@ a.bf-card:hover { border-color: var(--bf-teal); }
 @media (max-width: 47.5em) { .bf-two { grid-template-columns: 1fr; } .bf-dl { grid-template-columns: 1fr; gap: 4px; } .bf-dl dd { margin-bottom: 12px; } }
 
 /* St. Bernard concessions spotlight (artisans page) */
-.bf-block-tight { padding-block: 0 48px; }
-.bf-eats { background: var(--bf-card); border: 2px solid var(--bf-honey); border-radius: 6px; padding: 28px; display: grid; gap: 14px; }
+.bf-block-tight { padding-block: 0 40px; }
+.bf-eats { background: var(--bf-card); border: 2px solid var(--bf-honey); border-radius: 6px; padding: 20px 22px; display: grid; gap: 8px; }
 .bf-eats .bf-label { color: var(--bf-teal); }
-.bf-eats h2 { font-size: clamp(1.6rem, 4vw, 2.2rem); }
-.bf-eats > p { margin: 0; max-width: 62ch; color: var(--bf-ink-soft); }
+.bf-eats h2 { font-size: clamp(1.5rem, 3.6vw, 2rem); }
+.bf-eats > p { margin: 0; color: var(--bf-ink-soft); }
 .bf-eats > p strong { color: var(--bf-ink); }
-.bf-eats-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); gap: 10px; }
-.bf-eats-list li { background: var(--bf-paper); border-radius: 4px; padding: 12px 14px; display: grid; gap: 2px; align-content: start; min-width: 0; }
-.bf-eats-list b { font: 600 .95rem/1.3 var(--bf-label); letter-spacing: .08em; text-transform: uppercase; }
-.bf-eats-list span { color: var(--bf-ink-soft); font-size: .92rem; line-height: 1.45; display: block; }
-.bf-eats-list details { display: grid; }
-.bf-eats-list summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.bf-eats-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.bf-eats-list li { flex: 1 1 auto; position: relative; background: var(--bf-paper); border-radius: 4px; padding: 8px 12px; min-width: 0; display: flex; align-items: center; justify-content: center; }
+.bf-eats-list b { font: 600 .85rem/1.3 var(--bf-label); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.bf-eats-list details { width: 100%; }
+.bf-eats-list summary { list-style: none; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
 .bf-eats-list summary::-webkit-details-marker { display: none; }
-.bf-eats-list summary::after { content: "+"; flex: none; width: 24px; height: 24px; border-radius: 999px; border: 2px solid var(--bf-teal); color: var(--bf-teal); display: grid; place-items: center; font: 700 1rem/1 var(--bf-body); }
+.bf-eats-list summary::after { content: "+"; flex: none; width: 20px; height: 20px; border-radius: 999px; border: 2px solid var(--bf-teal); color: var(--bf-teal); display: grid; place-items: center; font: 700 .9rem/1 var(--bf-body); }
 .bf-eats-list details[open] summary::after { content: "\2212"; }
-.bf-eats-list details[open] span { margin-top: 6px; }
 .bf-eats-list summary:focus-visible { outline: 3px solid var(--bf-honey); outline-offset: 3px; border-radius: 4px; }
-@media (max-width: 30em) { .bf-eats { padding: 20px; } }
+/* What a stand serves: a small card under its button, so the row stays one line */
+.bf-eats-list span { position: absolute; z-index: 2; top: calc(100% + 6px); left: 0; width: max-content; max-width: 18rem; padding: 10px 12px; background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 4px; box-shadow: 0 10px 24px -12px rgba(20, 50, 45, .45); color: var(--bf-ink-soft); font-size: .9rem; line-height: 1.45; }
+.bf-eats-list li:last-child span { left: auto; right: 0; }
+@media (max-width: 45em) {
+  .bf-eats { padding: 18px; }
+  .bf-eats-list li:has(details) { flex-basis: 100%; }
+  .bf-eats-list span { position: static; display: block; width: auto; max-width: none; margin-top: 6px; padding: 0; background: none; border: 0; box-shadow: none; text-align: left; }
+}
 
 /* Artisan directory */
 .bf-search { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px; }
