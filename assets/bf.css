@@ -155,6 +155,19 @@ a.bf-card:hover { border-color: var(--bf-teal); }
 .bf-note { background: var(--bf-mint); border-radius: 6px; padding: 22px; display: grid; gap: 10px; align-content: start; color: var(--bf-ink); }
 @media (max-width: 47.5em) { .bf-two { grid-template-columns: 1fr; } .bf-dl { grid-template-columns: 1fr; gap: 4px; } .bf-dl dd { margin-bottom: 12px; } }
 
+/* St. Bernard concessions spotlight (artisans page) */
+.bf-block-tight { padding-block: 0 48px; }
+.bf-eats { background: var(--bf-card); border: 2px solid var(--bf-honey); border-radius: 6px; padding: 28px; display: grid; gap: 14px; }
+.bf-eats .bf-label { color: var(--bf-teal); }
+.bf-eats h2 { font-size: clamp(1.6rem, 4vw, 2.2rem); }
+.bf-eats > p { margin: 0; max-width: 62ch; color: var(--bf-ink-soft); }
+.bf-eats > p strong { color: var(--bf-ink); }
+.bf-eats-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); gap: 10px; }
+.bf-eats-list li { background: var(--bf-paper); border-radius: 4px; padding: 12px 14px; display: grid; gap: 2px; align-content: start; min-width: 0; }
+.bf-eats-list b { font: 600 .95rem/1.3 var(--bf-label); letter-spacing: .08em; text-transform: uppercase; }
+.bf-eats-list span { color: var(--bf-ink-soft); font-size: .92rem; line-height: 1.45; }
+@media (max-width: 30em) { .bf-eats { padding: 20px; } }
+
 /* Artisan directory */
 .bf-search { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px; }
 .bf-search input { flex: 1 1 260px; min-height: 48px; padding: 0 16px; border: 2px solid var(--bf-rule); border-radius: 999px; background: var(--bf-card); color: var(--bf-ink); font: 400 1rem var(--bf-body); }
