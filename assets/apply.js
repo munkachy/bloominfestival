@@ -189,13 +189,19 @@
   });
 
   /* ---------- checking the answers ---------- */
+  var NOT_PLACE = /@|https?:|www\.|\.(com|net|org|edu|gov|us)\b/i;     // an email or web address typed in an address box
   var RULES = {
     name: function (v) { return v.length >= 2 ? '' : 'Please enter your name.'; },
     email: function (v) { return !v ? 'Please enter your email address.' : /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? '' : "That email address doesn't look complete. Please check it."; },
     phone: function (v) { return (v.replace(/\D/g, '').length >= 10) ? '' : 'Please enter your phone number, with the area code.'; },
-    street: function (v) { return v ? '' : 'Please enter your street address.'; },
-    city: function (v) { return v ? '' : 'Please enter your city.'; },
-    state: function (v) { return v ? '' : 'Please enter your state.'; },
+    street: function (v) {
+      if (!v) return 'Please enter your street address.';
+      if (NOT_PLACE.test(v)) return "That looks like an email or web address. Please enter your street address here, like 123 Main St or PO Box 45. (Your email goes in Section 1.)";
+      if (!/\d/.test(v) || !/[A-Za-z]/.test(v)) return 'Please include your house or box number and street, like 123 Main St or PO Box 45.';
+      return '';
+    },
+    city: function (v) { return !v ? 'Please enter your city.' : NOT_PLACE.test(v) ? 'Please enter just your city here.' : ''; },
+    state: function (v) { return !v ? 'Please enter your state.' : NOT_PLACE.test(v) ? 'Please enter just your state here.' : ''; },
     zip: function (v) { return /^[A-Za-z0-9][A-Za-z0-9 -]{2,9}$/.test(v) ? '' : 'Please enter your ZIP code.'; },
     category: function (v) { return v ? '' : 'Please choose what you make.'; },
     categoryOther: function (v) { return val('category') !== 'Other' || v ? '' : 'Please tell us what you make.'; },
@@ -247,6 +253,9 @@
     form.elements[n].addEventListener('blur', function () { if (val(n) || fieldErr[n]) checkOne(n); });
   });
   form.elements.agree.addEventListener('change', function () { if (fieldErr.agree) checkOne('agree'); });
+  ['street', 'city', 'state'].forEach(function (n) {      // say so as soon as an email lands in the address
+    form.elements[n].addEventListener('input', function () { if (fieldErr[n] || NOT_PLACE.test(val(n))) checkOne(n); });
+  });
 
   function checkAll() {
     Object.keys(RULES).forEach(checkOne);
