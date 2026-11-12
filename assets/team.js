@@ -352,13 +352,15 @@
 
   /* ---------- the Vendor Desk ---------- */
   function inFilter(v) { return S.filter === 'all' || (S.filter === 'owes' ? owes(v) : S.filter === 'addr' ? !!addrProblem(v) : statusOf(v) === S.filter); }
-  // A mailing address that needs the team's eye: an email/web address typed in it, no house or box number, or none at all.
+  // A mailing address that needs the team's eye: none at all, an email/web address typed in it, no house or box number,
+  // or no ZIP (the old Google Form had one Address box and some vendors typed only their street).
   function addrProblem(v) {
     if (statusOf(v) === 'withdrew' || statusOf(v) === 'rejected') return '';
     var a = String(v.d.address || '').replace(/[\s,]+/g, ' ').trim();
     if (!a) return 'No mailing address';
     if (/@|https?:|www\.|\.(com|net|org|edu|gov|us)\b/i.test(a)) return 'Email or web address where the mailing address should be';
     if (!/\d/.test(a)) return 'No house or box number';
+    if (!/\b\d{5}(-\d{4})?\b/.test(a)) return 'Street only: no ZIP code (city or state may be missing too)';
     return '';
   }
   function seasonApps() { return S.apps.filter(function (v) { return v.season === S.season; }); }
@@ -401,7 +403,7 @@
       '<button type="button" class="tm-chip" data-f="all" aria-pressed="' + (S.filter === 'all') + '">All <b>' + counts.all + '</b></button>' +
       STATUSES.map(function (s) { return '<button type="button" class="tm-chip st-' + s.id + '" data-f="' + s.id + '" aria-pressed="' + (S.filter === s.id) + '"><i></i>' + esc(s.short || s.label) + ' <b>' + counts[s.id] + '</b></button>'; }).join('') +
       (counts.owes || S.filter === 'owes' ? '<button type="button" class="tm-chip tm-chip-owe" data-f="owes" aria-pressed="' + (S.filter === 'owes') + '" title="Paid part, balance still owed">Owes a balance <b>' + counts.owes + '</b></button>' : '') +
-      (counts.addr || S.filter === 'addr' ? '<button type="button" class="tm-chip tm-chip-owe" data-f="addr" aria-pressed="' + (S.filter === 'addr') + '" title="Email in the address, no house or box number, or no address. Fix with Edit details.">Check address <b>' + counts.addr + '</b></button>' : '') +
+      (counts.addr || S.filter === 'addr' ? '<button type="button" class="tm-chip tm-chip-owe" data-f="addr" aria-pressed="' + (S.filter === 'addr') + '" title="No address, an email in it, no house or box number, or no ZIP. Fix with Edit details.">Check address <b>' + counts.addr + '</b></button>' : '') +
       '</div>' +
       (collected ? '<p class="tm-money">Payments recorded for ' + S.season + ': <b>' + money(collected) + '</b> collected' + (owed ? ', <b>' + money(owed) + '</b> still owed on partial payments' : '') + '.</p>' : '') +
       '<div id="bbline" class="tm-bb">' + bbLineHtml() + '</div>' +
