@@ -484,7 +484,7 @@
       row('Exhibited before', d.returning === 'yes' ? 'Yes' + (d.returningYears ? ' (' + d.returningYears + ')' : '') : d.returning === 'no' ? 'No' : '') +
       row('Applied', whenTime(v.at)) +
       '</dl>' + editedHtml(v) +
-      '<p class="tm-editbar"><button type="button" class="bf-btn" id="editbtn">Edit details</button></p>' + editFormHtml(v) +
+      '<p class="tm-editbar"><button type="button" class="bf-btn" id="editbtn">Edit details</button><button type="button" class="bf-btn" id="printapp">Print application</button></p>' + editFormHtml(v) +
       paymentsHtml(v) +
       boothHtml(v) +
       (d.about ? '<h3>About their work</h3><p class="tm-about">' + esc(d.about) + '</p>' : '') +
@@ -509,6 +509,7 @@
     $all('[data-set]', panel).forEach(function (b) { b.onclick = function () { setStatus(v, b.getAttribute('data-set')); }; });
     $('#noteform').onsubmit = function (e) { e.preventDefault(); var t = $('#note').value.trim(); if (t) addNote(v, t); };
     $('#remove').onclick = function () { removeApp(v, this); };
+    $('#printapp').onclick = function () { printApp(v, this); };
     wirePayments(v);
     wireEdit(v);
     loadPhotos(v);
@@ -702,6 +703,41 @@
         if (fig) fig.querySelector('.tm-ph').textContent = 'Could not open this photo.';
       }
     }
+  }
+
+  /* ---------- print one application (built only in this browser, cleared after printing) ---------- */
+  async function printApp(v, btn) {
+    var d = v.d, st = statusOf(v);
+    var b = window.BFTeamMap && BFTeamMap.boothFor(v.no);
+    function line(label, val) { return val ? '<dt>' + esc(label) + '</dt><dd>' + esc(val) + '</dd>' : ''; }
+    busy(btn, 'Opening photos…');
+    try { await loadPhotos(v); } catch (x) { /* print without the photos that won't open */ }
+    unbusy(btn);
+    var photos = v.photoIds.filter(function (id) { return S.photoUrls[id]; }).map(function (id) {
+      var label = (d.photoLabels || [])[v.photoIds.indexOf(id)] || 'Photo';
+      return '<figure><img src="' + S.photoUrls[id] + '" alt=""><figcaption>' + esc(label) + '</figcaption></figure>';
+    }).join('');
+    var sheet = document.getElementById('tm-appprint');
+    if (!sheet) { sheet = document.createElement('div'); sheet.id = 'tm-appprint'; sheet.setAttribute('aria-hidden', 'true'); document.body.appendChild(sheet); }
+    sheet.innerHTML = '<header><p>Bloomin\' Festival ' + esc(v.season) + ' · Vendor application · Printed ' + esc(whenTime(new Date().toISOString())) + ' by ' + esc(myName()) + '</p><h1>' + esc(titleOf(v)) + '</h1>' +
+      '<p>' + esc(v.no) + ' · Received ' + esc(whenTime(v.at)) + ' · ' + esc(STATUS[st].label) +
+      (v.legacy ? (d.source === PAPER ? ' · Paper application' : ' · From the Google sheet') : '') + '</p></header>' +
+      '<dl>' + line('Name', d.name) + line('Business', d.business) + line('Mailing address', d.address) + line('Email', d.email) + line('Phone', d.phone) +
+      line('Website', d.website) + line('Craft', d.category) +
+      line('Booth spaces', d.booths === 2 ? '2, side by side' : d.booths === 1 ? '1' : '') +
+      line('Electricity', d.electricity === 'yes' ? 'Yes (+$25)' : d.electricity === 'no' ? 'No' : '') +
+      line('Exhibited before', d.returning === 'yes' ? 'Yes' + (d.returningYears ? ' (' + d.returningYears + ')' : '') : d.returning === 'no' ? 'No' : '') +
+      line('Booth', b ? b.n + (b.double && b.n2 && !b.one ? ' and ' + b.n2 : '') + (b.zone ? ' · ' + b.zone : '') : '') +
+      line('Amount due', money(dueOf(v))) + line('Paid', money(paidOf(v))) + (balanceOf(v) ? line('Balance', money(balanceOf(v))) : '') +
+      '</dl>' +
+      (d.about ? '<h2>About their work</h2><p>' + esc(d.about) + '</p>' : '') +
+      (d.notes ? '<h2>Their note to us</h2><p>' + esc(d.notes) + '</p>' : '') +
+      (photos ? '<section class="ap-phs"><h2>Photos</h2><div class="ap-ph">' + photos + '</div></section>' : '');
+    await Promise.all(Array.prototype.map.call(sheet.querySelectorAll('img'), function (img) { return img.decode ? img.decode().catch(function () {}) : null; }));
+    function done() { document.body.classList.remove('tm-printapp'); sheet.innerHTML = ''; window.removeEventListener('afterprint', done); }
+    window.addEventListener('afterprint', done);
+    document.body.classList.add('tm-printapp');
+    window.print();
   }
 
   /* ---------- saving team changes ---------- */

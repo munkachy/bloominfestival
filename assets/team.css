@@ -77,7 +77,7 @@
 /* ---------- recovery code ---------- */
 .tm-code { font: 600 clamp(1rem, 4.6vw, 1.45rem)/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .06em; text-align: center; padding: 18px; border: 2px dashed var(--bf-teal); border-radius: 14px; background: var(--bf-paper-2); overflow-wrap: anywhere; user-select: all; }
 .tm-code span, .tm-printcode span { display: block; white-space: nowrap; }
-.tm-printsheet { display: none; }
+.tm-printsheet, #tm-appprint { display: none; }
 
 /* ---------- the Vendor Desk ---------- */
 .tm-desk { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
@@ -153,7 +153,8 @@
 .tm-sbtn:disabled { opacity: .6; cursor: wait; }
 .tm-contact { display: flex; flex-wrap: wrap; gap: 8px; }
 .tm-contact .bf-btn { min-height: 42px; padding: 6px 16px; font-size: .78rem; }
-.tm-editbar { margin: 10px 0 0; }
+.tm-editbar { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.tm-editbar[hidden] { display: none; }
 .tm-editform { margin-top: 10px; }
 .tm-editform[hidden] { display: none; }
 .tm-editfields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
@@ -223,6 +224,23 @@
   body.tm-printing .tm-printsheet { display: block; font: 12pt/1.5 var(--bf-body); color: #000; }
   .tm-printsheet h1 { font-size: 20pt; margin-bottom: 8pt; }
   .tm-printcode { font: 600 20pt/1.6 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; border: 2px solid #000; padding: 14pt; margin: 18pt 0; text-align: center; }
+  /* one vendor's application (Print application in the vendor panel) */
+  body.tm-printapp > :not(#tm-appprint) { display: none !important; }
+  body.tm-printapp #tm-appprint { display: block; font: 11pt/1.45 var(--bf-body); color: #000; background: #fff; }
+  #tm-appprint header { border-bottom: 2px solid #000; padding-bottom: 8pt; margin-bottom: 12pt; }
+  #tm-appprint header p { margin: 0; font-size: 10pt; }
+  #tm-appprint h1 { font-size: 20pt; margin: 2pt 0 4pt; color: #000; }
+  #tm-appprint h2 { font-size: 13pt; margin: 14pt 0 4pt; color: #000; }
+  #tm-appprint p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  #tm-appprint dl { display: grid; grid-template-columns: 9.5em 1fr; gap: 4pt 12pt; margin: 0; }
+  #tm-appprint dt { font-weight: 700; }
+  #tm-appprint dd { margin: 0; overflow-wrap: anywhere; }
+  #tm-appprint .ap-ph { display: flex; flex-wrap: wrap; gap: 10pt; }
+  #tm-appprint h2 { break-after: avoid; }
+  #tm-appprint .ap-phs { break-inside: avoid; }
+  #tm-appprint figure { margin: 0; width: 2.6in; break-inside: avoid; }
+  #tm-appprint img { width: 100%; max-height: 2.6in; object-fit: contain; object-position: left top; display: block; }
+  #tm-appprint figcaption { font-size: 9pt; }
 }
 
 /* Settings → Import payments */
