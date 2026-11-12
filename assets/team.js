@@ -1198,6 +1198,46 @@
     });
     return out;
   }
+  /* Before 4 Nov 2026 the import put the email in Address. Find those vendors in this file and offer their real address.
+     Only the address changes, saved as a team edit (like Edit details): statuses, notes, payments and other edits stay,
+     and an address the team already fixed (no @ in it any more) is left alone. */
+  function addressFixes(items) {
+    var byKey = {};
+    items.forEach(function (it) { byKey[key(it.app.email) + '|' + it.app.legacyStamp] = it.app.address; });
+    return S.apps.filter(function (v) { return v.legacy && v.d.source !== PAPER && /@/.test(v.d.address || ''); }).map(function (v) {
+      var addr = String(byKey[key(v.d.email) + '|' + (v.d.legacyStamp || v.d.submittedAt)] || '').trim();
+      return addr && !/@/.test(addr) ? { v: v, addr: addr } : null;
+    }).filter(Boolean);
+  }
+  function fixesHtml(fixes) {
+    if (!fixes.length) return '';
+    return '<div class="tm-fixaddr"><p><strong>' + fixes.length + ' vendor' + (fixes.length === 1 ? '' : 's') + ' brought over earlier ' + (fixes.length === 1 ? 'has' : 'have') + ' an email where the address should be.</strong> ' +
+      'This file has their real address. Only the address changes; statuses, notes, payments and other edits stay as they are.</p>' +
+      '<ul>' + fixes.map(function (f) { return '<li><b>' + esc(titleOf(f.v)) + '</b> (' + esc(f.v.no) + '): ' + esc(f.addr) + '</li>'; }).join('') + '</ul>' +
+      '<button class="bf-btn bf-btn-honey" id="dofix">Fix ' + fixes.length + ' address' + (fixes.length === 1 ? '' : 'es') + '</button><p class="tm-wait" id="fprog" hidden></p></div>';
+  }
+  function wireFixes(fixes) {
+    var btn = $('#dofix'); if (!btn) return;
+    btn.onclick = async function () {
+      var prog = $('#fprog'), done = 0, skipped = 0; busy(btn, 'Fixing…'); prog.hidden = false;
+      try {
+        for (var i = 0; i < fixes.length; i++) {
+          var f = fixes[i], changed = false;
+          await saveRecord(f.v, function (rec) {
+            changed = false;     // set again on each try (a save conflict re-runs this on the newer record)
+            var e = rec.edit || {};
+            if (Object.prototype.hasOwnProperty.call(e, 'address') && !/@/.test(e.address || '')) return;   // someone fixed it meanwhile
+            e.address = f.addr; rec.edit = e; changed = true;
+            rec.history.push({ at: new Date().toISOString(), by: myName(), edited: ['Address (from the Google sheet)'] });
+          });
+          if (changed) done++; else skipped++;
+          prog.textContent = 'Fixed ' + done + ' of ' + fixes.length + '…';
+        }
+        prog.textContent = 'Done. ' + done + ' address' + (done === 1 ? '' : 'es') + ' fixed' + (skipped ? ' (' + skipped + ' already fixed by someone else)' : '') + '.';
+        btn.hidden = true;
+      } catch (x) { unbusy(btn); prog.textContent = 'Stopped: ' + friendly(x) + '. You can pick the file again; addresses already fixed are skipped.'; }
+    };
+  }
   async function prepareImport(file) {
     var box = $('#importinfo');
     box.innerHTML = '<p class="tm-wait">Reading the file…</p>';
@@ -1214,11 +1254,17 @@
       have[k] = 1;     // the same row twice in one file
       return true;
     });
+    var fixes = addressFixes(items);
     var bySeason = {}; fresh.forEach(function (it) { bySeason[it.season] = (bySeason[it.season] || 0) + 1; });
-    if (!fresh.length) { box.innerHTML = '<p class="tm-ok">All ' + items.length + ' rows in this file are already here. Nothing to import.</p>'; return; }
-    box.innerHTML = '<p>Found <strong>' + fresh.length + '</strong> applications to bring over' + (items.length > fresh.length ? ' (' + (items.length - fresh.length) + ' already here)' : '') + ': ' +
+    if (!fresh.length) {
+      box.innerHTML = '<p class="tm-ok">All ' + items.length + ' rows in this file are already here. Nothing to import.</p>' + fixesHtml(fixes);
+      wireFixes(fixes);
+      return;
+    }
+    box.innerHTML = fixesHtml(fixes) + '<p>Found <strong>' + fresh.length + '</strong> applications to bring over' + (items.length > fresh.length ? ' (' + (items.length - fresh.length) + ' already here)' : '') + ': ' +
       Object.keys(bySeason).sort().map(function (y) { return bySeason[y] + ' for ' + y; }).join(', ') + '. Statuses typed in the sheet ("Accepted", "Paid", "Rejected"…) come over too.</p>' +
       '<button class="bf-btn bf-btn-honey" id="doimport">Import ' + fresh.length + ' applications</button><p class="tm-wait" id="iprog" hidden></p>';
+    wireFixes(fixes);
     $('#doimport').onclick = async function () {
       var btn = this, prog = $('#iprog'); busy(btn, 'Importing…'); prog.hidden = false;
       try {

@@ -110,7 +110,10 @@ matching section here in the same commit, so the next session can start from thi
   assumption; the team can change any vendor's amount due. Confirm it with the festival team.
 - **Address on old-sheet imports:** before the fix on 4 Nov 2026, the CSV import put the email in Address ("Email
   Address" matched first). Vendors imported before then still show their email as their address. Re-importing skips
-  them; the Desk's **Check address** chip lists them (and vendors who typed their email there) to fix by hand.
+  them; the Desk's **Check address** chip lists them (and vendors who typed their email there). **Repair (12 Nov 2026):**
+  pick the Google sheet CSV again in Settings → Import: `addressFixes` matches imported vendors (email + timestamp)
+  whose address still has an @ and offers "Fix N addresses", saved as a team edit (`rec.edit.address`, history
+  "Address (from the Google sheet)"); nothing else in the record changes, and addresses already fixed are skipped.
 - The payments and Craft chips were tested only with fake vendors, not checked on the live Desk with real data. Ask
   the team whether anything looks off.
 
