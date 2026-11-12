@@ -351,11 +351,21 @@
   }
 
   /* ---------- the Vendor Desk ---------- */
+  function inFilter(v) { return S.filter === 'all' || (S.filter === 'owes' ? owes(v) : S.filter === 'addr' ? !!addrProblem(v) : statusOf(v) === S.filter); }
+  // A mailing address that needs the team's eye: an email/web address typed in it, no house or box number, or none at all.
+  function addrProblem(v) {
+    if (statusOf(v) === 'withdrew' || statusOf(v) === 'rejected') return '';
+    var a = String(v.d.address || '').replace(/[\s,]+/g, ' ').trim();
+    if (!a) return 'No mailing address';
+    if (/@|https?:|www\.|\.(com|net|org|edu|gov|us)\b/i.test(a)) return 'Email or web address where the mailing address should be';
+    if (!/\d/.test(a)) return 'No house or box number';
+    return '';
+  }
   function seasonApps() { return S.apps.filter(function (v) { return v.season === S.season; }); }
   function visible() {
     var q = key(S.q);
     var list = seasonApps().filter(function (v) {
-      if (S.filter === 'owes' ? !owes(v) : S.filter !== 'all' && statusOf(v) !== S.filter) return false;
+      if (!inFilter(v)) return false;
       if (S.craft !== 'all' && v.craft !== S.craft) return false;
       if (!q) return true;
       return [v.no, v.d.name, v.d.business, v.d.email, v.d.phone, v.d.category, v.d.about, v.d.address].some(function (x) { return key(x).indexOf(q) !== -1; });
@@ -374,12 +384,12 @@
     var seasons = {}; S.apps.forEach(function (v) { seasons[v.season] = (seasons[v.season] || 0) + 1; });
     if (!seasons[S.season]) seasons[S.season] = 0;
     // Each row of chips counts within the other's choice: pick Paid and the crafts show how many paid potters there are.
-    var counts = { all: 0, owes: 0 }; STATUSES.forEach(function (s) { counts[s.id] = 0; });
+    var counts = { all: 0, owes: 0, addr: 0 }; STATUSES.forEach(function (s) { counts[s.id] = 0; });
     var crafts = { all: 0 }; CRAFTS.forEach(function (c) { crafts[c.id] = 0; });
     var collected = 0, owed = 0;
     seasonApps().forEach(function (v) {
-      if (S.craft === 'all' || v.craft === S.craft) { counts.all++; counts[statusOf(v)]++; if (owes(v)) counts.owes++; }
-      if (S.filter === 'all' || (S.filter === 'owes' ? owes(v) : statusOf(v) === S.filter)) { crafts.all++; crafts[v.craft]++; }
+      if (S.craft === 'all' || v.craft === S.craft) { counts.all++; counts[statusOf(v)]++; if (owes(v)) counts.owes++; if (addrProblem(v)) counts.addr++; }
+      if (inFilter(v)) { crafts.all++; crafts[v.craft]++; }
       collected += paidOf(v); if (owes(v)) owed += balanceOf(v);
     });
     screen('<div class="tm-desk">' +
@@ -391,6 +401,7 @@
       '<button type="button" class="tm-chip" data-f="all" aria-pressed="' + (S.filter === 'all') + '">All <b>' + counts.all + '</b></button>' +
       STATUSES.map(function (s) { return '<button type="button" class="tm-chip st-' + s.id + '" data-f="' + s.id + '" aria-pressed="' + (S.filter === s.id) + '"><i></i>' + esc(s.short || s.label) + ' <b>' + counts[s.id] + '</b></button>'; }).join('') +
       (counts.owes || S.filter === 'owes' ? '<button type="button" class="tm-chip tm-chip-owe" data-f="owes" aria-pressed="' + (S.filter === 'owes') + '" title="Paid part, balance still owed">Owes a balance <b>' + counts.owes + '</b></button>' : '') +
+      (counts.addr || S.filter === 'addr' ? '<button type="button" class="tm-chip tm-chip-owe" data-f="addr" aria-pressed="' + (S.filter === 'addr') + '" title="Email in the address, no house or box number, or no address. Fix with Edit details.">Check address <b>' + counts.addr + '</b></button>' : '') +
       '</div>' +
       (collected ? '<p class="tm-money">Payments recorded for ' + S.season + ': <b>' + money(collected) + '</b> collected' + (owed ? ', <b>' + money(owed) + '</b> still owed on partial payments' : '') + '.</p>' : '') +
       '<div id="bbline" class="tm-bb">' + bbLineHtml() + '</div>' +
@@ -433,6 +444,7 @@
       if (v.returning) badges.push('<span class="tm-bdg" title="Has applied in an earlier year">↺ Returning</span>');
       if (v.legacy) badges.push(v.d.source === PAPER ? '<span class="tm-bdg tm-bdg-old" title="Applied on paper; added from Blackbaud">Paper</span>' : '<span class="tm-bdg tm-bdg-old" title="Brought over from the Google sheet">Google sheet</span>');
       if (v.rec && v.rec.mail) badges.push('<span class="tm-bdg" title="Paper application, paying by mail (on the Blackbaud event)">✉ By mail</span>');
+      if (addrProblem(v)) badges.push('<span class="tm-bdg tm-bdg-owe" title="' + esc(addrProblem(v)) + '">Check address</span>');
       if (owes(v)) badges.push('<span class="tm-bdg tm-bdg-owe" title="Paid ' + money(paidOf(v)) + ' of ' + money(dueOf(v)) + '">Owes ' + money(balanceOf(v)) + '</span>');
       var bo = window.BFTeamMap && BFTeamMap.boothFor(v.no);
       if (bo) badges.push('<span class="tm-bdg tm-bdg-booth" title="Their booth on the festival map">Booth ' + esc(bo.n) + (bo.double && bo.n2 && !bo.one ? '–' + esc(bo.n2) : '') + '</span>');
@@ -476,7 +488,7 @@
       (d.phone ? '<a class="bf-btn" href="tel:' + esc(String(d.phone).replace(/[^0-9+]/g, '')) + '">Call ' + esc(d.phone) + '</a>' : '') +
       '</div>' +
       '<dl class="tm-dl">' +
-      row('Email', d.email) + row('Phone', d.phone) + row('Address', d.address) +
+      row('Email', d.email) + row('Phone', d.phone) + row('Address', d.address) + (addrProblem(v) ? '<dt></dt><dd class="tm-addrwarn">' + esc(addrProblem(v)) + '. Fix it with Edit details below.</dd>' : '') +
       (site ? '<dt>Website</dt><dd><a href="' + esc(site) + '" target="_blank" rel="noopener">' + esc(d.website) + '</a></dd>' : '') +
       row('Category', d.category) + (v.craft !== d.category ? row('Listed under', v.craft) : '') +
       row('Booth spaces', d.booths === 2 ? '2, side by side' : d.booths === 1 ? '1' : '') +

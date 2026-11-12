@@ -95,6 +95,7 @@
 .tm-money { color: var(--bf-ink-soft); }
 .tm-money b { color: var(--bf-ink); font-variant-numeric: tabular-nums; }
 .tm-bdg-owe { color: var(--tm-err); border-color: var(--tm-err); }
+.tm-addrwarn { color: var(--tm-err); font-weight: 600; font-size: .9rem; margin-top: -6px; }
 .tm-pay { display: grid; gap: 12px; }
 .tm-paysum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .tm-paysum span { display: grid; gap: 2px; padding: 10px 14px; background: var(--bf-card); border: 1px solid var(--bf-rule); border-radius: 12px; }
